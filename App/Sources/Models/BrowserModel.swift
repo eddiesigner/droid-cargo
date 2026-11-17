@@ -49,11 +49,27 @@ final class BrowserModel {
     private(set) var deviceID: String?
     private(set) var history: [String] = []
     private(set) var historyIndex = 0
-    private(set) var items: [RemoteItem] = []
+    private(set) var items: [RemoteItem] = [] {
+        didSet {
+            itemsByID = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            rebuildVisibleItems()
+        }
+    }
+    /// Filtered and sorted, folders first like Finder's "Keep folders on top".
+    /// Stored, not computed: sorting thousands of names on every redraw causes lag.
+    private(set) var visibleItems: [RemoteItem] = []
     private(set) var state: LoadState = .idle
     var selection = Set<RemoteItem.ID>()
-    var searchText = ""
-    var sortOrder = [KeyPathComparator(\RemoteItem.name, comparator: .localizedStandard)]
+    var searchText = "" {
+        didSet {
+            if searchText != oldValue {
+                rebuildVisibleItems()
+            }
+        }
+    }
+    var sortOrder = [KeyPathComparator(\RemoteItem.name, comparator: .localizedStandard)] {
+        didSet { rebuildVisibleItems() }
+    }
     var isInspectorShown = false
     var isPhotoImportShown = false
     var isNewFolderShown = false
@@ -67,9 +83,63 @@ final class BrowserModel {
     /// Listings already seen, shown instantly while a fresh one loads.
     private var cache: [String: [RemoteItem]] = [:]
     private var loadTask: Task<Void, Never>?
+    private var itemsByID: [RemoteItem.ID: RemoteItem] = [:]
+    private var rebuildTask: Task<Void, Never>?
+    private var loadedPath: String?
 
     init(app: AppModel) {
         self.app = app
+        observeHiddenFilesSetting()
+    }
+
+    private func observeHiddenFilesSetting() {
+        withObservationTracking {
+            _ = app.settings.showHiddenFiles
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.rebuildVisibleItems()
+                self?.observeHiddenFilesSetting()
+            }
+        }
+    }
+
+    /// Folders below this size are sorted inline so navigation never shows a stale frame.
+    private static let inlineSortLimit = 1_500
+
+    /// Filters and sorts; large folders go off the main thread and the newest request wins.
+    private func rebuildVisibleItems() {
+        rebuildTask?.cancel()
+        let items = items
+        let query = searchText.trimmingCharacters(in: .whitespaces)
+        let showHidden = app.settings.showHiddenFiles
+        let sortOrder = sortOrder
+
+        guard items.count > Self.inlineSortLimit else {
+            visibleItems = Self.arrange(items, query: query, showHidden: showHidden, sortOrder: sortOrder)
+            return
+        }
+        rebuildTask = Task {
+            let result = await Task.detached(priority: .userInitiated) {
+                Self.arrange(items, query: query, showHidden: showHidden, sortOrder: sortOrder)
+            }.value
+            guard !Task.isCancelled else {
+                return
+            }
+            visibleItems = result
+        }
+    }
+
+    nonisolated private static func arrange(
+        _ items: [RemoteItem],
+        query: String,
+        showHidden: Bool,
+        sortOrder: [KeyPathComparator<RemoteItem>]
+    ) -> [RemoteItem] {
+        let filtered = items.filter { item in
+            (showHidden || !item.isHidden) && (query.isEmpty || item.name.localizedStandardContains(query))
+        }
+        let sorted = filtered.sorted(using: sortOrder)
+        return sorted.filter(\.isDirectory) + sorted.filter { !$0.isDirectory }
     }
 
     // MARK: Derived state
@@ -91,19 +161,8 @@ final class BrowserModel {
             .max { $0.rootPath.count < $1.rootPath.count }
     }
 
-    /// Filtered and sorted, folders first like Finder's "Keep folders on top".
-    var visibleItems: [RemoteItem] {
-        let query = searchText.trimmingCharacters(in: .whitespaces)
-        let filtered = items.filter { item in
-            (app.settings.showHiddenFiles || !item.isHidden)
-                && (query.isEmpty || item.name.localizedStandardContains(query))
-        }
-        let sorted = filtered.sorted(using: sortOrder)
-        return sorted.filter(\.isDirectory) + sorted.filter { !$0.isDirectory }
-    }
-
     var selectedItems: [RemoteItem] {
-        items.filter { selection.contains($0.id) }
+        selection.compactMap { itemsByID[$0] }
     }
 
     var canGoBack: Bool { historyIndex > 0 }
@@ -177,6 +236,11 @@ final class BrowserModel {
         loadTask?.cancel()
         guard let deviceID, let path = currentPath else {
             return
+        }
+        if path != loadedPath {
+            // Never show the previous folder's items under the new title.
+            visibleItems = []
+            loadedPath = path
         }
         selection = []
         searchText = ""
@@ -320,5 +384,12 @@ final class BrowserModel {
             return
         }
         sidebarSelection = .storage(deviceID: device.id, rootPath: storage.rootPath)
+
+        // Development aid: `open DroidCargo.app --args -openPath /storage/emulated/0/DCIM`.
+        if let path = UserDefaults.standard.string(forKey: Self.openPathArgument), path.hasPrefix(storage.rootPath) {
+            navigate(to: path)
+        }
     }
+
+    private static let openPathArgument = "openPath"
 }

@@ -1,3 +1,4 @@
+import AppKit
 import CargoServices
 import SwiftUI
 
@@ -28,13 +29,15 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .background(SidebarBackdrop().ignoresSafeArea())
         .overlay {
             if app.devices.devices.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "cable.connector")
                         .font(.title2)
                         .foregroundStyle(.tertiary)
-                    Text("No Phones")
+                    Text("No Phones Connected")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -75,48 +78,32 @@ struct SidebarView: View {
     }
 }
 
+/// Lets more of the desktop show through than the default sidebar material.
+private struct SidebarBackdrop: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .underWindowBackground
+        view.blendingMode = .behindWindow
+        view.state = .followsWindowActiveState
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+}
+
+/// Finder-style header: just the name. Readiness shows in the rows below it.
 private struct DeviceHeader: View {
     let device: Device
 
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "smartphone")
-            Text(device.name)
-            Circle()
-                .fill(device.state == .online ? Color.green : Color.orange)
-                .frame(width: 6, height: 6)
-                .accessibilityHidden(true)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(device.state == .online ? Text("Connected") : Text("Not ready"))
+        Text(device.name)
     }
 }
 
-/// Storage name with a thin capacity bar, like Finder's sidebar volumes.
 private struct StorageRow: View {
     let storage: Storage
 
-    private var fraction: Double {
-        storage.totalBytes == 0 ? 0 : Double(storage.usedBytes) / Double(storage.totalBytes)
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Label(storage.name, systemImage: storage.kind == .internalStorage ? "internaldrive" : "sdcard")
-            if storage.totalBytes > 0 {
-                ProgressView(value: fraction)
-                    .progressViewStyle(.linear)
-                    .controlSize(.mini)
-                    .tint(fraction > 0.9 ? .orange : .accentColor)
-                    .padding(.leading, 24)
-                Text("\(Int64(storage.freeBytes).formatted(.byteCount(style: .file))) available")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-                    .padding(.leading, 24)
-            }
-        }
-        .padding(.vertical, 2)
-        .accessibilityElement(children: .combine)
+        Label(storage.name, systemImage: storage.kind == .internalStorage ? "internaldrive" : "sdcard")
     }
 }

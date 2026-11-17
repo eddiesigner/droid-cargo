@@ -180,6 +180,19 @@ final class ADBDeviceSession: DeviceSession {
 
     // MARK: Transfers
 
+    /// `exec:` streams raw bytes without a terminal, so binary data survives intact.
+    func readPrefix(_ remotePath: String, maxBytes: Int) async throws -> Data {
+        let stream = try await client.open("exec:head -c \(maxBytes) \(ADBWire.shellQuote(remotePath))", serial: device.id)
+        defer { stream.close() }
+        return try await stream.readToEnd()
+    }
+
+    func readSuffix(_ remotePath: String, maxBytes: Int) async throws -> Data {
+        let stream = try await client.open("exec:tail -c \(maxBytes) \(ADBWire.shellQuote(remotePath))", serial: device.id)
+        defer { stream.close() }
+        return try await stream.readToEnd()
+    }
+
     func download(_ remotePath: String, to localURL: URL, control: TransferControl, progress: ByteProgress) async throws {
         FileManager.default.createFile(atPath: localURL.path, contents: nil)
         let handle = try FileHandle(forWritingTo: localURL)

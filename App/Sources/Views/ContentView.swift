@@ -12,6 +12,15 @@ struct ContentView: View {
     }
 
     var body: some View {
+        // First launch, or adb went missing: get Platform Tools sorted before anything else.
+        if app.devices.isADBInstalled && app.settings.hasCompletedWelcome {
+            browserWindow
+        } else {
+            WelcomeView(app: app)
+        }
+    }
+
+    private var browserWindow: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView(app: app, browser: browser)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 230, max: 320)

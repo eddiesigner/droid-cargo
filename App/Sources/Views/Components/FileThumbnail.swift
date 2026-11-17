@@ -19,9 +19,7 @@ struct FileThumbnail: View {
                     .resizable()
                     .scaledToFit()
                     .clipShape(.rect(cornerRadius: size > 40 ? 6 : 3))
-                    .shadow(color: .black.opacity(size > 40 ? 0.15 : 0), radius: 2, y: 1)
                     .overlay(alignment: .bottomLeading) { videoBadge }
-                    .transition(.opacity)
             } else {
                 Image(nsImage: FileIcons.icon(for: item))
                     .resizable()
@@ -29,7 +27,6 @@ struct FileThumbnail: View {
             }
         }
         .frame(width: size, height: size)
-        .animation(.easeOut(duration: 0.2), value: image != nil)
         .task(id: "\(item.id)|\(pixels)") {
             guard let deviceID = browser.deviceID, ThumbnailService.canPreview(item) else {
                 image = nil

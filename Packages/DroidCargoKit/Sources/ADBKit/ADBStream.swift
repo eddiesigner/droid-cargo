@@ -19,7 +19,10 @@ public final class ADBSocket: ADBStream, @unchecked Sendable {
 
     private let connection: NWConnection
     private let queue = DispatchQueue(label: "app.droidcargo.adb.socket")
+    /// Received bytes; `readOffset` marks how far callers have consumed.
+    /// Consuming by offset avoids shifting the whole buffer on every small read.
     private var buffer = Data()
+    private var readOffset = 0
     private var reachedEnd = false
 
     public init(port: UInt16) {
@@ -75,20 +78,23 @@ public final class ADBSocket: ADBStream, @unchecked Sendable {
     }
 
     public func read(exactly count: Int) async throws -> Data {
-        while buffer.count < count {
+        while buffer.count - readOffset < count {
             guard try await receiveMore() else {
                 throw DeviceError.deviceDisconnected
             }
         }
-        let result = buffer.prefix(count)
-        buffer.removeFirst(count)
-        return Data(result)
+        let start = buffer.startIndex + readOffset
+        let result = Data(buffer[start..<start + count])
+        readOffset += count
+        return result
     }
 
     public func readToEnd() async throws -> Data {
         while try await receiveMore() {}
-        defer { buffer.removeAll() }
-        return buffer
+        let rest = Data(buffer.dropFirst(readOffset))
+        buffer.removeAll()
+        readOffset = 0
+        return rest
     }
 
     public func close() {
@@ -110,6 +116,11 @@ public final class ADBSocket: ADBStream, @unchecked Sendable {
             }
         }
         if let data, !data.isEmpty {
+            // Drop consumed bytes only when appending, at most once per network chunk.
+            if readOffset > 0 {
+                buffer.removeFirst(readOffset)
+                readOffset = 0
+            }
             buffer.append(data)
         }
         if isComplete {

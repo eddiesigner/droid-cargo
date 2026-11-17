@@ -47,6 +47,11 @@ public protocol DeviceSession: Sendable {
     func list(_ directory: String) async throws -> [RemoteItem]
     func stat(_ path: String) async throws -> RemoteItem?
 
+    /// Reads at most `maxBytes` from the start of a file, e.g. for embedded previews.
+    func readPrefix(_ remotePath: String, maxBytes: Int) async throws -> Data
+    /// Reads at most `maxBytes` from the end of a file, e.g. a video's index.
+    func readSuffix(_ remotePath: String, maxBytes: Int) async throws -> Data
+
     func download(_ remotePath: String, to localURL: URL, control: TransferControl, progress: ByteProgress) async throws
     func upload(_ localURL: URL, to remotePath: String, modified: Date, control: TransferControl, progress: ByteProgress) async throws
 

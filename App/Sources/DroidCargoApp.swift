@@ -3,7 +3,13 @@ import SwiftUI
 
 @main
 struct DroidCargoApp: App {
-    @State private var app = AppModel()
+    @State private var app: AppModel
+
+    init() {
+        let app = AppModel()
+        _app = State(initialValue: app)
+        ConnectionHelp.app = app
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -11,11 +17,15 @@ struct DroidCargoApp: App {
                 .frame(minWidth: 760, minHeight: 460)
                 .onAppear { app.requestNotificationPermission() }
         }
+        // First launch only; afterwards macOS restores the user's size.
+        // Tall enough to show all connection steps without scrolling.
+        .defaultSize(width: 1100, height: 720)
         .windowToolbarStyle(.unified)
         .commands {
             BrowserCommands()
             SidebarCommands()
             InspectorCommands()
+            HelpCommands()
         }
 
         Settings {

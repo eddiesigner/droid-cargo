@@ -18,6 +18,6 @@ let package = Package(
         .target(name: "ADBKit", dependencies: ["DeviceKit"]),
         .target(name: "CargoServices", dependencies: ["DeviceKit", "ADBKit"]),
         .testTarget(name: "ADBKitTests", dependencies: ["ADBKit"]),
-        .testTarget(name: "CargoServicesTests", dependencies: ["CargoServices"]),
+        .testTarget(name: "CargoServicesTests", dependencies: ["CargoServices", "ADBKit"]),
     ]
 )

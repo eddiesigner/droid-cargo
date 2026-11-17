@@ -12,8 +12,7 @@ struct BrowserView: View {
         VStack(spacing: 0) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            Divider()
-            PathBar(browser: browser)
+            BottomBars(browser: browser)
         }
         .navigationTitle(browser.breadcrumbs.last?.name ?? "")
         .navigationSubtitle(browser.device?.name ?? "")
@@ -25,10 +24,6 @@ struct BrowserView: View {
         } isTargeted: { isDropTargeted = $0 }
         .overlay { dropHighlight }
         .quickLookPreview($browser.previewURL)
-        .onKeyPress(.space) {
-            Task { await browser.toggleQuickLook() }
-            return .handled
-        }
         .sheet(isPresented: $browser.isNewFolderShown) {
             NameSheet(title: "New Folder", actionTitle: "Create", initialName: String(localized: "untitled folder")) { name in
                 try await browser.makeFolder(named: name)
@@ -59,7 +54,7 @@ struct BrowserView: View {
         } message: {
             Text("This can’t be undone. Android has no Trash for files deleted over USB.")
         }
-        .alert("Something Went Wrong", isPresented: Binding(get: { browser.operationError != nil }, set: { if !$0 { browser.operationError = nil } })) {
+        .alert("The Action Couldn’t Be Completed", isPresented: Binding(get: { browser.operationError != nil }, set: { if !$0 { browser.operationError = nil } })) {
             Button("OK") {}
         } message: {
             Text(browser.operationError ?? "")
@@ -84,9 +79,9 @@ struct BrowserView: View {
             if browser.visibleItems.isEmpty {
                 emptyFolder
             } else if settings.layout == .grid {
-                FileGridView(browser: browser)
+                CollectionGridView(browser: browser, iconSize: settings.gridThumbnailSize)
             } else {
-                FileListView(browser: browser)
+                FileTableView(browser: browser)
             }
         }
     }
@@ -108,7 +103,6 @@ struct BrowserView: View {
                 .background(Color.accentColor.opacity(0.06), in: .rect(cornerRadius: 12))
                 .padding(6)
                 .allowsHitTesting(false)
-                .transition(.opacity)
                 .accessibilityHidden(true)
         }
     }

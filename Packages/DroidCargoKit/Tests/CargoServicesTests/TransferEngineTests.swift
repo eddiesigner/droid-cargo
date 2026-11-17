@@ -11,10 +11,16 @@ final class FakeSession: DeviceSession, @unchecked Sendable {
     private var folders: Set<String> = ["/sdcard"]
     /// Number of upcoming downloads that fail with a transient error.
     var failNextDownloads = 0
+    /// Whole-file downloads so far; thumbnail tests check prefix-only reads.
+    private(set) var downloadCount = 0
 
     func put(_ path: String, _ text: String) {
+        put(path, data: Data(text.utf8))
+    }
+
+    func put(_ path: String, data: Data) {
         lock.withLock {
-            files[path] = Data(text.utf8)
+            files[path] = data
             var parent = RemotePath.parent(path)
             while parent != "/" {
                 folders.insert(parent)
@@ -57,6 +63,14 @@ final class FakeSession: DeviceSession, @unchecked Sendable {
         }
     }
 
+    func readPrefix(_ remotePath: String, maxBytes: Int) async throws -> Data {
+        lock.withLock { files[remotePath]?.prefix(maxBytes) ?? Data() }
+    }
+
+    func readSuffix(_ remotePath: String, maxBytes: Int) async throws -> Data {
+        lock.withLock { files[remotePath]?.suffix(maxBytes) ?? Data() }
+    }
+
     func download(_ remotePath: String, to localURL: URL, control: TransferControl, progress: ByteProgress) async throws {
         let shouldFail = lock.withLock {
             defer { failNextDownloads = max(0, failNextDownloads - 1) }
@@ -65,6 +79,7 @@ final class FakeSession: DeviceSession, @unchecked Sendable {
         if shouldFail {
             throw DeviceError.deviceDisconnected
         }
+        lock.withLock { downloadCount += 1 }
         guard let data = lock.withLock({ files[remotePath] }) else {
             throw DeviceError.notFound(remotePath)
         }

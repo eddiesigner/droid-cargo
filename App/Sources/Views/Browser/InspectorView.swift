@@ -16,6 +16,8 @@ struct InspectorView: View {
                     systemImage: "square.stack",
                     description: Text(Int64(selected.reduce(0) { $0 + $1.size }).formatted(.byteCount(style: .file)))
                 )
+            } else if let storage = browser.storage {
+                StorageSummary(storage: storage)
             } else {
                 ContentUnavailableView("No Selection", systemImage: "info.circle", description: Text("Select an item to see its details."))
             }
@@ -47,6 +49,7 @@ struct InspectorView: View {
                 HStack {
                     Button("Download") { browser.download([item]) }
                         .buttonStyle(.borderedProminent)
+                        .hoverHighlight()
                     if !item.isDirectory {
                         Button("Quick Look") { Task { await browser.toggleQuickLook() } }
                     }
@@ -65,5 +68,46 @@ struct InspectorView: View {
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+/// Capacity of the current storage, like a volume's Get Info.
+private struct StorageSummary: View {
+    let storage: Storage
+
+    private var fraction: Double {
+        storage.totalBytes == 0 ? 0 : Double(storage.usedBytes) / Double(storage.totalBytes)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(storage.name, systemImage: storage.kind == .internalStorage ? "internaldrive" : "sdcard")
+                .font(.headline)
+            Gauge(value: fraction) {
+                EmptyView()
+            }
+            .gaugeStyle(.linearCapacity)
+            .tint(fraction > 0.9 ? .orange : .accentColor)
+            .accessibilityLabel("Used space")
+            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
+                GridRow {
+                    Text("Used").foregroundStyle(.secondary)
+                    Text(Int64(storage.usedBytes).formatted(.byteCount(style: .file)))
+                }
+                GridRow {
+                    Text("Available").foregroundStyle(.secondary)
+                    Text(Int64(storage.freeBytes).formatted(.byteCount(style: .file)))
+                }
+                GridRow {
+                    Text("Capacity").foregroundStyle(.secondary)
+                    Text(Int64(storage.totalBytes).formatted(.byteCount(style: .file)))
+                }
+            }
+            .font(.callout)
+            .monospacedDigit()
+            Spacer()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

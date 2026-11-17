@@ -1,6 +1,13 @@
 import DeviceKit
 import Foundation
 
+/// Where to look for adb besides the user's path and DroidCargo's own install.
+public enum ADBSearchScope: Sendable {
+    case everywhere
+    /// Ignores Homebrew and Android Studio copies. For testing first launch.
+    case appInstallOnly
+}
+
 /// Finds an `adb` binary and starts its server.
 public struct ADBServerLauncher: Sendable {
     /// Checked in order after the user's custom path.
@@ -11,15 +18,24 @@ public struct ADBServerLauncher: Sendable {
     ]
 
     private let customPath: @Sendable () -> String?
+    private let installer: PlatformToolsInstaller
+    private let scope: ADBSearchScope
 
     /// `customPath` is read on every launch so settings changes apply without restarting.
-    public init(customPath: @escaping @Sendable () -> String? = { nil }) {
+    public init(
+        customPath: @escaping @Sendable () -> String? = { nil },
+        installer: PlatformToolsInstaller = PlatformToolsInstaller(),
+        scope: ADBSearchScope = .everywhere
+    ) {
         self.customPath = customPath
+        self.installer = installer
+        self.scope = scope
     }
 
     public func locate() -> URL? {
         let bundled = Bundle.main.url(forResource: "adb", withExtension: nil)?.path
-        let candidates = [customPath(), bundled].compactMap { $0 } + Self.standardLocations
+        let standard = scope == .everywhere ? Self.standardLocations : []
+        let candidates = [customPath(), bundled].compactMap { $0 } + standard + [installer.adbURL.path]
         return candidates
             .first { FileManager.default.isExecutableFile(atPath: $0) }
             .map { URL(filePath: $0) }

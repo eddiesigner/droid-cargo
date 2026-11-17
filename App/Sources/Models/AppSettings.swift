@@ -28,6 +28,7 @@ final class AppSettings {
         static let photoOrganization = "photoOrganization"
         static let customADBPath = "customADBPath"
         static let favorites = "favorites"
+        static let hasCompletedWelcome = "hasCompletedWelcome"
     }
 
     static let parallelRange = 1...4
@@ -68,6 +69,10 @@ final class AppSettings {
     var customADBPath: String {
         didSet { defaults.set(customADBPath, forKey: Key.customADBPath) }
     }
+    /// Set once the user leaves the first-launch welcome screen.
+    var hasCompletedWelcome: Bool {
+        didSet { defaults.set(hasCompletedWelcome, forKey: Key.hasCompletedWelcome) }
+    }
     /// Pinned folders, keyed by device serial.
     var favorites: [String: [String]] {
         didSet { defaults.set(favorites, forKey: Key.favorites) }
@@ -87,6 +92,7 @@ final class AppSettings {
         photoOrganization = defaults.string(forKey: Key.photoOrganization).flatMap(PhotoOrganization.init) ?? .byMonth
         customADBPath = defaults.string(forKey: Key.customADBPath) ?? ""
         favorites = defaults.dictionary(forKey: Key.favorites) as? [String: [String]] ?? [:]
+        hasCompletedWelcome = defaults.bool(forKey: Key.hasCompletedWelcome)
     }
 
     var transferOptions: TransferOptions {

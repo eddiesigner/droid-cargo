@@ -8,46 +8,56 @@
 
 /* Begin PBXBuildFile section */
 		13B631ED1D74BEBB7C0C6B46 /* Sheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D3A30E0EA9F8FD77D3AA5F /* Sheets.swift */; };
+		15DDB48C8A4814F8FFE2F1AB /* CollectionGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7057F06FF355E039F8723732 /* CollectionGridView.swift */; };
 		2A8212A13FBF763DA1302FED /* FileThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE89C2E1BE769DB0224A4E5B /* FileThumbnail.swift */; };
-		4A8C319EDC596DBA1F3BD11B /* FileGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84A24E176BAF88BA05CB5B95 /* FileGridView.swift */; };
+		43C90259A1094AE58AB553FA /* FileCollectionItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A13AEC6AF8138556537A2F /* FileCollectionItem.swift */; };
 		4BF78B8F84F61DBFCF2F61A1 /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8730DE01CE77BF2DFD8AD4AF /* InspectorView.swift */; };
 		4CBD510BC7EECB0CD03B7BAF /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75B9EA5270899F365CF71C2A /* SidebarView.swift */; };
 		5EC6B1390F6BCB3B3BF1D231 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BADE07D88ADB8A0F5F7D64A4 /* BrowserView.swift */; };
-		64DD5366C6A254E75F4962E7 /* FileListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D3D09BD578C3740B977708E /* FileListView.swift */; };
 		6B86B18D1E910CFCB076F7C2 /* TransfersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8B153C7FD3569B6B9CDA28 /* TransfersView.swift */; };
+		72D182FEB780E41B70C1E4D6 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB5C27D61D5EEABE55F3FE45 /* WelcomeView.swift */; };
 		86D8BEE06BC0320E826D0CFB /* BrowserToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD828D20EEE0A8F9808B29EE /* BrowserToolbar.swift */; };
+		8AA7E929D7FC47C2669418C4 /* SetupSteps.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52E35964EA7F346E30B97F7 /* SetupSteps.swift */; };
 		9C91756349EBF661E48DB413 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 794BE8B8413F99E47CBA08C0 /* AppModel.swift */; };
 		A9B521E5CEA01190940E6E74 /* CargoServices in Frameworks */ = {isa = PBXBuildFile; productRef = E87AEA139D6A098484E95746 /* CargoServices */; };
 		AB3B65B8FDC7F4641B6641F6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77E0238686536241C27A56DF /* Assets.xcassets */; };
+		B5BFB6842E1CC3BFD1CB67B8 /* HoverButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71CBBA794DDD3ADB38B920C5 /* HoverButtonStyles.swift */; };
 		B66BA3C59464F3F3B7146720 /* PhotoImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8538C562063A47A2F5C65C2D /* PhotoImportSheet.swift */; };
 		B9CF81DD2A7FAB6400170FEA /* BrowserModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D35FDFA2B0C1B31C4EB1EE7 /* BrowserModel.swift */; };
 		C4C6F05D9C3B1267601EE2ED /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36FCD17E1992C87596DCA7C /* AppSettings.swift */; };
 		C6F3CA5E810B9EC247169A8B /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72BE069296940F4835891913 /* OnboardingView.swift */; };
 		C98B06936297A7DBD4C4397A /* DroidCargoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E04A29D0F0A07AE83D43C6A7 /* DroidCargoApp.swift */; };
+		CEAF4DA962BA5DC00B8B7A58 /* FileTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFDC677849B079AD60F29307 /* FileTableView.swift */; };
 		E42E6CAE8C1F3619CC4F3AF4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246E39A5F291CA2C9C67C7EE /* ContentView.swift */; };
 		EA09C9F32F9F8ED70B4FBEF2 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08D44E1DAF430329265D026 /* SettingsView.swift */; };
+		EF692AB2CBE0BA4D9B930341 /* ConnectionHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5422FB580A29B6319CAE7447 /* ConnectionHelpView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		246E39A5F291CA2C9C67C7EE /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2D35FDFA2B0C1B31C4EB1EE7 /* BrowserModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserModel.swift; sourceTree = "<group>"; };
+		5422FB580A29B6319CAE7447 /* ConnectionHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionHelpView.swift; sourceTree = "<group>"; };
 		69210BD8BD71CB8056715E5D /* DroidCargo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DroidCargo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7057F06FF355E039F8723732 /* CollectionGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionGridView.swift; sourceTree = "<group>"; };
+		71CBBA794DDD3ADB38B920C5 /* HoverButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverButtonStyles.swift; sourceTree = "<group>"; };
 		72BE069296940F4835891913 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		75B9EA5270899F365CF71C2A /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		77E0238686536241C27A56DF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		794BE8B8413F99E47CBA08C0 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
-		84A24E176BAF88BA05CB5B95 /* FileGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileGridView.swift; sourceTree = "<group>"; };
 		8538C562063A47A2F5C65C2D /* PhotoImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoImportSheet.swift; sourceTree = "<group>"; };
 		8730DE01CE77BF2DFD8AD4AF /* InspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorView.swift; sourceTree = "<group>"; };
-		9D3D09BD578C3740B977708E /* FileListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileListView.swift; sourceTree = "<group>"; };
+		A52E35964EA7F346E30B97F7 /* SetupSteps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupSteps.swift; sourceTree = "<group>"; };
 		AC8B153C7FD3569B6B9CDA28 /* TransfersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransfersView.swift; sourceTree = "<group>"; };
 		BADE07D88ADB8A0F5F7D64A4 /* BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserView.swift; sourceTree = "<group>"; };
 		C36FCD17E1992C87596DCA7C /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		CFDC677849B079AD60F29307 /* FileTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTableView.swift; sourceTree = "<group>"; };
 		D08D44E1DAF430329265D026 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D78850EACCAAF81A52CE62B3 /* DroidCargoKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DroidCargoKit; path = Packages/DroidCargoKit; sourceTree = SOURCE_ROOT; };
+		DB5C27D61D5EEABE55F3FE45 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		DD828D20EEE0A8F9808B29EE /* BrowserToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserToolbar.swift; sourceTree = "<group>"; };
 		E04A29D0F0A07AE83D43C6A7 /* DroidCargoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DroidCargoApp.swift; sourceTree = "<group>"; };
 		EE89C2E1BE769DB0224A4E5B /* FileThumbnail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileThumbnail.swift; sourceTree = "<group>"; };
+		F6A13AEC6AF8138556537A2F /* FileCollectionItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileCollectionItem.swift; sourceTree = "<group>"; };
 		F8D3A30E0EA9F8FD77D3AA5F /* Sheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sheets.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -98,10 +108,19 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		6581F8BFBDE0582A836DA637 /* Help */ = {
+			isa = PBXGroup;
+			children = (
+				5422FB580A29B6319CAE7447 /* ConnectionHelpView.swift */,
+			);
+			path = Help;
+			sourceTree = "<group>";
+		};
 		7E90485DC84823D79B3BF5A5 /* Components */ = {
 			isa = PBXGroup;
 			children = (
 				EE89C2E1BE769DB0224A4E5B /* FileThumbnail.swift */,
+				71CBBA794DDD3ADB38B920C5 /* HoverButtonStyles.swift */,
 				F8D3A30E0EA9F8FD77D3AA5F /* Sheets.swift */,
 			);
 			path = Components;
@@ -139,8 +158,9 @@
 			children = (
 				DD828D20EEE0A8F9808B29EE /* BrowserToolbar.swift */,
 				BADE07D88ADB8A0F5F7D64A4 /* BrowserView.swift */,
-				84A24E176BAF88BA05CB5B95 /* FileGridView.swift */,
-				9D3D09BD578C3740B977708E /* FileListView.swift */,
+				7057F06FF355E039F8723732 /* CollectionGridView.swift */,
+				F6A13AEC6AF8138556537A2F /* FileCollectionItem.swift */,
+				CFDC677849B079AD60F29307 /* FileTableView.swift */,
 				8730DE01CE77BF2DFD8AD4AF /* InspectorView.swift */,
 			);
 			path = Browser;
@@ -150,6 +170,8 @@
 			isa = PBXGroup;
 			children = (
 				72BE069296940F4835891913 /* OnboardingView.swift */,
+				A52E35964EA7F346E30B97F7 /* SetupSteps.swift */,
+				DB5C27D61D5EEABE55F3FE45 /* WelcomeView.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -185,6 +207,7 @@
 				246E39A5F291CA2C9C67C7EE /* ContentView.swift */,
 				AF5127523F9394B0E157AA89 /* Browser */,
 				7E90485DC84823D79B3BF5A5 /* Components */,
+				6581F8BFBDE0582A836DA637 /* Help */,
 				C7B220ABAF8FD38691AF5844 /* Onboarding */,
 				DAFB1009F8F82D219979713A /* Settings */,
 				EA0E8A06B65C4005CA4854CC /* Sidebar */,
@@ -273,18 +296,23 @@
 				B9CF81DD2A7FAB6400170FEA /* BrowserModel.swift in Sources */,
 				86D8BEE06BC0320E826D0CFB /* BrowserToolbar.swift in Sources */,
 				5EC6B1390F6BCB3B3BF1D231 /* BrowserView.swift in Sources */,
+				15DDB48C8A4814F8FFE2F1AB /* CollectionGridView.swift in Sources */,
+				EF692AB2CBE0BA4D9B930341 /* ConnectionHelpView.swift in Sources */,
 				E42E6CAE8C1F3619CC4F3AF4 /* ContentView.swift in Sources */,
 				C98B06936297A7DBD4C4397A /* DroidCargoApp.swift in Sources */,
-				4A8C319EDC596DBA1F3BD11B /* FileGridView.swift in Sources */,
-				64DD5366C6A254E75F4962E7 /* FileListView.swift in Sources */,
+				43C90259A1094AE58AB553FA /* FileCollectionItem.swift in Sources */,
+				CEAF4DA962BA5DC00B8B7A58 /* FileTableView.swift in Sources */,
 				2A8212A13FBF763DA1302FED /* FileThumbnail.swift in Sources */,
+				B5BFB6842E1CC3BFD1CB67B8 /* HoverButtonStyles.swift in Sources */,
 				4BF78B8F84F61DBFCF2F61A1 /* InspectorView.swift in Sources */,
 				C6F3CA5E810B9EC247169A8B /* OnboardingView.swift in Sources */,
 				B66BA3C59464F3F3B7146720 /* PhotoImportSheet.swift in Sources */,
 				EA09C9F32F9F8ED70B4FBEF2 /* SettingsView.swift in Sources */,
+				8AA7E929D7FC47C2669418C4 /* SetupSteps.swift in Sources */,
 				13B631ED1D74BEBB7C0C6B46 /* Sheets.swift in Sources */,
 				4CBD510BC7EECB0CD03B7BAF /* SidebarView.swift in Sources */,
 				6B86B18D1E910CFCB076F7C2 /* TransfersView.swift in Sources */,
+				72D182FEB780E41B70C1E4D6 /* WelcomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

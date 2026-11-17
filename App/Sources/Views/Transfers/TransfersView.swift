@@ -52,7 +52,7 @@ struct TransfersPopover: View {
                 Spacer()
                 Button("Clear") { transfers.clearFinished() }
                     .disabled(!transfers.jobs.contains { $0.phase.isFinished })
-                    .buttonStyle(.borderless)
+                    .buttonStyle(.hoverIcon)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -146,7 +146,7 @@ private struct TransferRow: View {
         Button(action: action) {
             Image(systemName: symbol).font(.title3)
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.hoverIcon)
         .help(title)
         .accessibilityLabel(title)
     }

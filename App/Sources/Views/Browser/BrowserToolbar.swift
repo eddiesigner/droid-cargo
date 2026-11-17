@@ -47,51 +47,98 @@ struct BrowserToolbar: ToolbarContent {
     }
 }
 
-/// Finder-style path bar with item count and free space.
-struct PathBar: View {
+/// Finder's bottom bars: path bar (NSPathControl) above a centered status bar.
+struct BottomBars: View {
     let browser: BrowserModel
 
     var body: some View {
-        HStack(spacing: 4) {
-            ForEach(Array(browser.breadcrumbs.enumerated()), id: \.offset) { index, crumb in
-                if index > 0 {
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .accessibilityHidden(true)
+        VStack(spacing: 0) {
+            Divider()
+            PathControl(crumbs: browser.breadcrumbs) { browser.navigate(to: $0) }
+                .frame(height: 22)
+                .padding(.horizontal, 8)
+            Divider()
+            ZStack {
+                Text(status)
+                    .font(.system(size: NSFont.smallSystemFontSize))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                if browser.app.settings.layout == .grid {
+                    HStack {
+                        Spacer()
+                        Slider(value: Binding(get: { browser.app.settings.gridThumbnailSize }, set: { browser.app.settings.gridThumbnailSize = $0 }), in: AppSettings.gridSizeRange)
+                            .controlSize(.mini)
+                            .frame(width: 90)
+                            .accessibilityLabel("Icon size")
+                    }
                 }
-                Button {
-                    browser.navigate(to: crumb.path)
-                } label: {
-                    Label(crumb.name, systemImage: index == 0 ? "internaldrive" : "folder.fill")
-                        .labelStyle(.titleAndIcon)
-                        .lineLimit(1)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(index == browser.breadcrumbs.count - 1 ? .primary : .secondary)
             }
-            Spacer(minLength: 12)
-            Text(status)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-                .lineLimit(1)
+            .frame(height: 22)
+            .padding(.horizontal, 10)
         }
-        .font(.callout)
-        .padding(.horizontal, 12)
-        .frame(height: 28)
         .background(.bar)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Path")
     }
 
+    /// Finder wording: "1 of 7,913 selected, 45.2 GB available".
     private var status: String {
         let count = browser.visibleItems.count
-        let items = count == 1 ? String(localized: "1 item") : String(localized: "\(count) items")
-        let selected = browser.selection.isEmpty ? "" : String(localized: "\(browser.selection.count) selected, ")
-        guard let storage = browser.storage else {
-            return selected + items
+        let selectedCount = browser.selection.count
+        var text = selectedCount > 0
+            ? String(localized: "\(selectedCount) of \(count) selected")
+            : (count == 1 ? String(localized: "1 item") : String(localized: "\(count) items"))
+        if let storage = browser.storage {
+            text += String(localized: ", \(Int64(storage.freeBytes).formatted(.byteCount(style: .file))) available")
         }
-        let free = Int64(storage.freeBytes).formatted(.byteCount(style: .file))
-        return "\(selected)\(items), \(free) available"
+        return text
+    }
+}
+
+/// Native path control; clicking a segment opens that folder.
+struct PathControl: NSViewRepresentable {
+    let crumbs: [(name: String, path: String)]
+    let navigate: (String) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeNSView(context: Context) -> NSPathControl {
+        let control = NSPathControl()
+        control.pathStyle = .standard
+        control.controlSize = .small
+        control.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        control.focusRingType = .none
+        control.target = context.coordinator
+        control.action = #selector(Coordinator.clicked(_:))
+        control.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return control
+    }
+
+    func updateNSView(_ control: NSPathControl, context: Context) {
+        context.coordinator.navigate = navigate
+        let paths = crumbs.map(\.path)
+        guard paths != context.coordinator.paths else {
+            return
+        }
+        context.coordinator.paths = paths
+        let folderIcon = NSWorkspace.shared.icon(for: .folder)
+        control.pathItems = crumbs.enumerated().map { index, crumb in
+            let item = NSPathControlItem()
+            item.title = crumb.name
+            item.image = index == 0 ? NSImage(systemSymbolName: "internaldrive", accessibilityDescription: nil) : folderIcon
+            return item
+        }
+    }
+
+    final class Coordinator: NSObject {
+        var paths: [String] = []
+        var navigate: (String) -> Void = { _ in }
+
+        @objc func clicked(_ control: NSPathControl) {
+            guard let item = control.clickedPathItem, let index = control.pathItems.firstIndex(of: item), paths.indices.contains(index) else {
+                return
+            }
+            navigate(paths[index])
+        }
     }
 }

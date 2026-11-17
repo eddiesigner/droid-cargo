@@ -34,7 +34,7 @@ final class AppModel {
         let devices = DeviceService(customADBPath: {
             let path = UserDefaults.standard.string(forKey: "customADBPath") ?? ""
             return path.isEmpty ? nil : path
-        })
+        }, setupMode: Self.toolsSetupMode)
         self.devices = devices
         files = FileService(devices: devices)
         transfers = TransferService(devices: devices)
@@ -45,6 +45,24 @@ final class AppModel {
         transfers.onJobFinished = { [weak self] job in self?.jobFinished(job) }
         devices.start()
         observeDevices()
+    }
+
+    // MARK: Platform Tools
+
+    /// Development aid: `open DroidCargo.app --args -simulateMissingTools YES`
+    /// shows the first-launch install screen and fakes the install.
+    private static var toolsSetupMode: ToolsSetupMode {
+        UserDefaults.standard.bool(forKey: "simulateMissingTools") ? .simulated : .normal
+    }
+
+    func installPlatformTools() {
+        Task { await devices.installPlatformTools() }
+    }
+
+    /// Uses an adb the user already has somewhere unusual.
+    func useADB(at url: URL) {
+        settings.customADBPath = url.path
+        devices.refreshToolsAvailability()
     }
 
     // MARK: Devices
@@ -67,7 +85,10 @@ final class AppModel {
 
     func refreshStorages() {
         let online = Set(onlineDevices.map(\.id))
-        storages = storages.filter { online.contains($0.key) }
+        let kept = storages.filter { online.contains($0.key) }
+        if kept.count != storages.count {
+            storages = kept
+        }
         for id in online where storages[id] == nil {
             Task { await loadStorages(id) }
         }
@@ -75,8 +96,13 @@ final class AppModel {
 
     func loadStorages(_ deviceID: String) async {
         do {
-            storages[deviceID] = try await files.storages(on: deviceID)
-            storageErrors[deviceID] = nil
+            let loaded = try await files.storages(on: deviceID)
+            if storages[deviceID] != loaded {
+                storages[deviceID] = loaded
+            }
+            if storageErrors[deviceID] != nil {
+                storageErrors[deviceID] = nil
+            }
         } catch {
             storageErrors[deviceID] = error.localizedDescription
         }
