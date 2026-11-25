@@ -24,16 +24,26 @@ public struct TransferConflict: Sendable {
     public let direction: TransferDirection
 }
 
+/// Which date a copied file gets.
+public enum FileDatePolicy: String, Sendable, CaseIterable {
+    /// The date the file has on the other side (when the photo was taken, say).
+    case keepOriginal
+    /// The moment it was copied.
+    case useTransferDate
+}
+
 public struct TransferOptions: Sendable {
     public var conflictPolicy: ConflictPolicy
     /// Files moved at the same time. More than one hides per-file latency for small files.
     public var parallelism: Int
     public var scanMediaAfterUpload: Bool
+    public var dates: FileDatePolicy
 
-    public init(conflictPolicy: ConflictPolicy, parallelism: Int, scanMediaAfterUpload: Bool) {
+    public init(conflictPolicy: ConflictPolicy, parallelism: Int, scanMediaAfterUpload: Bool, dates: FileDatePolicy = .keepOriginal) {
         self.conflictPolicy = conflictPolicy
         self.parallelism = max(1, parallelism)
         self.scanMediaAfterUpload = scanMediaAfterUpload
+        self.dates = dates
     }
 }
 
@@ -82,6 +92,8 @@ struct SessionSource: Sendable {
 struct TransferEngine: Sendable {
     static let maxAttempts = 3
     static let tempSuffix = ".droidcargo-part"
+    /// Header times this much newer than the original date were rewritten by an export.
+    static let movieHeaderTolerance: TimeInterval = 60
     /// Mac files never worth copying to a phone.
     static let ignoredLocalNames: Set<String> = [".DS_Store", ".localized"]
 
@@ -129,7 +141,7 @@ struct TransferEngine: Sendable {
         session: any DeviceSession,
         onFound: @Sendable (Int, UInt64) async -> Void
     ) async throws -> [PlannedFile] {
-        let keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey]
+        let keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .creationDateKey]
         var files: [PlannedFile] = []
         var folders: [String] = []
         var totalBytes: UInt64 = 0
@@ -144,7 +156,12 @@ struct TransferEngine: Sendable {
                 return
             }
             let size = UInt64(values.fileSize ?? 0)
-            files.append(.upload(localURL: url, size: size, modified: values.contentModificationDate ?? Date(), remotePath: remotePath))
+            // Photos go up with their capture date so Android's Gallery files them correctly.
+            // Otherwise the earlier file date: Apple Photos exports keep the capture
+            // date as the created date but get today as the modified date.
+            let fileDate = [values.creationDate, values.contentModificationDate].compactMap { $0 }.min()
+            let modified = CaptureDate.read(from: url) ?? fileDate ?? Date()
+            files.append(.upload(localURL: url, size: size, modified: modified, remotePath: remotePath))
             totalBytes += size
         }
 
@@ -290,7 +307,10 @@ struct TransferEngine: Sendable {
         guard written == size else {
             throw DeviceError.protocolViolation(String(localized: "expected \(size) bytes, received \(written)"))
         }
-        try FileManager.default.setAttributes([.modificationDate: modified], ofItemAtPath: temp.path)
+        if options.dates == .keepOriginal {
+            // The phone only knows the modified date, so it also becomes the created date.
+            try FileManager.default.setAttributes([.modificationDate: modified, .creationDate: modified], ofItemAtPath: temp.path)
+        }
         if FileManager.default.fileExists(atPath: target.path) {
             _ = try FileManager.default.replaceItemAt(target, withItemAt: temp)
             return
@@ -302,8 +322,16 @@ struct TransferEngine: Sendable {
         let folder = RemotePath.parent(remotePath)
         let temp = RemotePath.join(folder, ".\(RemotePath.name(remotePath))\(Self.tempSuffix)")
 
+        let source = try movieWithOriginalHeader(localURL, date: modified)
+        defer {
+            if source != localURL {
+                try? FileManager.default.removeItem(at: source.deletingLastPathComponent())
+            }
+        }
+
         do {
-            try await session.upload(localURL, to: temp, modified: modified, control: control, progress: progress)
+            let date = options.dates == .keepOriginal ? modified : Date()
+            try await session.upload(source, to: temp, modified: date, control: control, progress: progress)
             guard let uploaded = try await session.stat(temp), uploaded.size == size else {
                 throw DeviceError.protocolViolation(String(localized: "size mismatch after upload"))
             }
@@ -312,6 +340,25 @@ struct TransferEngine: Sendable {
             try? await session.remove(temp)
             throw error
         }
+    }
+
+    /// Android dates a video by its movie header, which Apple Photos resets to
+    /// the export time. When that header is newer than the original date,
+    /// upload an APFS clone (no extra disk space) with the header corrected.
+    /// The Mac file is never modified.
+    private func movieWithOriginalHeader(_ localURL: URL, date: Date) throws -> URL {
+        guard options.dates == .keepOriginal,
+              MovieHeader.fileExtensions.contains(localURL.pathExtension.lowercased()),
+              let stamped = MovieHeader.creationDate(of: localURL),
+              stamped.timeIntervalSince(date) > Self.movieHeaderTolerance else {
+            return localURL
+        }
+        let folder = FileManager.default.temporaryDirectory.appending(path: "droidcargo-upload-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let copy = folder.appending(path: localURL.lastPathComponent)
+        try FileManager.default.copyItem(at: localURL, to: copy)
+        try MovieHeader.setDates(date, in: copy)
+        return copy
     }
 
     // MARK: Naming

@@ -77,6 +77,7 @@ final class ADBDeviceSession: DeviceSession {
     private static let ignoredStorageNames: Set<String> = ["self", "emulated"]
     private static let kilobyte: UInt64 = 1024
     private static let mediaScanBatch = 40
+    private static let mediaFilesURI = "content://media/external/file"
     private static let exitMarker = "__droidcargo_rc="
 
     let device: Device
@@ -225,8 +226,26 @@ final class ADBDeviceSession: DeviceSession {
     func notifyMediaScanner(_ paths: [String]) async {
         for start in stride(from: 0, to: paths.count, by: Self.mediaScanBatch) {
             let batch = paths[start..<min(start + Self.mediaScanBatch, paths.count)]
+            // `scan_file` returns once the file is indexed, so ownership can be
+            // cleared right after; the broadcast covers phones without it.
             let commands = batch.map {
-                "am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d \(ADBWire.shellQuote("file://" + $0)) >/dev/null 2>&1"
+                "content call --uri \(Self.mediaFilesURI) --method scan_file --arg \(ADBWire.shellQuote($0)) >/dev/null 2>&1"
+                    + " || am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d \(ADBWire.shellQuote("file://" + $0)) >/dev/null 2>&1"
+            }
+            _ = try? await client.shell(commands.joined(separator: "; "), serial: device.id)
+        }
+    }
+
+    /// adb writes through Android's media layer as `com.android.shell`, which
+    /// Google Photos shows as the source and won't move to the trash. Files
+    /// copied over USB file transfer have no owner; match that.
+    func releaseOwnership(_ paths: [String]) async {
+        for start in stride(from: 0, to: paths.count, by: Self.mediaScanBatch) {
+            let batch = paths[start..<min(start + Self.mediaScanBatch, paths.count)]
+            let commands = batch.map { path in
+                // SQL string literal: double any single quote in the path.
+                let condition = "_data='\(path.replacingOccurrences(of: "'", with: "''"))'"
+                return "content update --uri \(Self.mediaFilesURI) --bind owner_package_name:n: --where \(ADBWire.shellQuote(condition)) >/dev/null 2>&1"
             }
             _ = try? await client.shell(commands.joined(separator: "; "), serial: device.id)
         }

@@ -44,6 +44,7 @@ private struct ProgressRing: View {
 
 struct TransfersPopover: View {
     let transfers: TransferService
+    @State private var listHeight: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -62,18 +63,28 @@ struct TransfersPopover: View {
                 ContentUnavailableView("No Transfers", systemImage: "arrow.up.arrow.down", description: Text("Downloads and uploads show up here."))
                     .frame(height: 160)
             } else {
+                // A bare ScrollView has no natural height, so the popover cut it off.
+                // Measure the rows and show them all, scrolling only past the limit.
                 ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(transfers.jobs) { job in
-                            TransferRow(job: job, transfers: transfers)
-                            Divider().padding(.leading, 52)
-                        }
-                    }
+                    rows.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { listHeight = $0 }
                 }
-                .frame(maxHeight: 420)
+                .frame(height: min(max(listHeight, 1), Self.maxListHeight))
             }
         }
         .frame(width: 380)
+    }
+
+    private static let maxListHeight: CGFloat = 420
+
+    private var rows: some View {
+        VStack(spacing: 0) {
+            ForEach(transfers.jobs) { job in
+                TransferRow(job: job, transfers: transfers)
+                if job.id != transfers.jobs.last?.id {
+                    Divider().padding(.leading, 52)
+                }
+            }
+        }
     }
 }
 

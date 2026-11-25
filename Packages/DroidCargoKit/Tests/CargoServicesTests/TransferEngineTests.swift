@@ -8,6 +8,8 @@ final class FakeSession: DeviceSession, @unchecked Sendable {
     let device = Device(id: "fake", name: "Fake", model: "Fake", state: .online, transport: .adb)
     private let lock = NSLock()
     private var files: [String: Data] = [:]
+    /// Modification dates sent with uploads, by remote path.
+    private var dates: [String: Date] = [:]
     private var folders: Set<String> = ["/sdcard"]
     /// Number of upcoming downloads that fail with a transient error.
     var failNextDownloads = 0
@@ -29,8 +31,16 @@ final class FakeSession: DeviceSession, @unchecked Sendable {
         }
     }
 
+    func data(_ path: String) -> Data? {
+        lock.withLock { files[path] }
+    }
+
     func contents(_ path: String) -> String? {
         lock.withLock { files[path].map { String(decoding: $0, as: UTF8.self) } }
+    }
+
+    func modified(_ path: String) -> Date? {
+        lock.withLock { dates[path] }
     }
 
     func allPaths() -> [String] {
@@ -89,7 +99,10 @@ final class FakeSession: DeviceSession, @unchecked Sendable {
 
     func upload(_ localURL: URL, to remotePath: String, modified: Date, control: TransferControl, progress: ByteProgress) async throws {
         let data = try Data(contentsOf: localURL)
-        lock.withLock { files[remotePath] = data }
+        lock.withLock {
+            files[remotePath] = data
+            dates[remotePath] = modified
+        }
         progress(UInt64(data.count))
     }
 
@@ -100,6 +113,7 @@ final class FakeSession: DeviceSession, @unchecked Sendable {
     func move(_ source: String, to destination: String) async throws {
         lock.withLock {
             files[destination] = files.removeValue(forKey: source)
+            dates[destination] = dates.removeValue(forKey: source)
         }
     }
 
@@ -108,6 +122,8 @@ final class FakeSession: DeviceSession, @unchecked Sendable {
     }
 
     func notifyMediaScanner(_ paths: [String]) async {}
+
+    func releaseOwnership(_ paths: [String]) async {}
 }
 
 private func makeTempFolder() throws -> URL {

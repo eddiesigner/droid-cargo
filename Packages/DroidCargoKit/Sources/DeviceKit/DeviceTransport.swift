@@ -61,6 +61,10 @@ public protocol DeviceSession: Sendable {
 
     /// Asks the phone to index new files so they show up in Gallery and other apps.
     func notifyMediaScanner(_ paths: [String]) async
+
+    /// Clears the "created by" app the phone recorded for uploaded files, so
+    /// they look like files copied over USB rather than by a developer tool.
+    func releaseOwnership(_ paths: [String]) async
 }
 
 /// Finds devices and opens sessions for one kind of connection.

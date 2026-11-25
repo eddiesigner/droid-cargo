@@ -18,6 +18,7 @@ final class AppSettings {
     private enum Key {
         static let downloadFolder = "downloadFolder"
         static let conflictPolicy = "conflictPolicy"
+        static let fileDates = "fileDates"
         static let parallelTransfers = "parallelTransfers"
         static let showHiddenFiles = "showHiddenFiles"
         static let layout = "layout"
@@ -41,6 +42,9 @@ final class AppSettings {
     }
     var conflictPolicy: ConflictPolicy {
         didSet { defaults.set(conflictPolicy.rawValue, forKey: Key.conflictPolicy) }
+    }
+    var fileDates: FileDatePolicy {
+        didSet { defaults.set(fileDates.rawValue, forKey: Key.fileDates) }
     }
     var parallelTransfers: Int {
         didSet { defaults.set(parallelTransfers, forKey: Key.parallelTransfers) }
@@ -82,7 +86,8 @@ final class AppSettings {
         self.defaults = defaults
         downloadFolder = defaults.string(forKey: Key.downloadFolder).map { URL(filePath: $0) } ?? .downloadsDirectory
         conflictPolicy = defaults.string(forKey: Key.conflictPolicy).flatMap(ConflictPolicy.init) ?? .ask
-        parallelTransfers = defaults.object(forKey: Key.parallelTransfers) as? Int ?? 2
+        fileDates = defaults.string(forKey: Key.fileDates).flatMap(FileDatePolicy.init) ?? .keepOriginal
+        parallelTransfers = defaults.object(forKey: Key.parallelTransfers) as? Int ?? 1
         showHiddenFiles = defaults.bool(forKey: Key.showHiddenFiles)
         layout = defaults.string(forKey: Key.layout).flatMap(BrowserLayout.init) ?? .list
         gridThumbnailSize = defaults.object(forKey: Key.gridThumbnailSize) as? Double ?? 128
@@ -96,7 +101,7 @@ final class AppSettings {
     }
 
     var transferOptions: TransferOptions {
-        TransferOptions(conflictPolicy: conflictPolicy, parallelism: parallelTransfers, scanMediaAfterUpload: scanMedia)
+        TransferOptions(conflictPolicy: conflictPolicy, parallelism: parallelTransfers, scanMediaAfterUpload: scanMedia, dates: fileDates)
     }
 
     func isFavorite(_ path: String, deviceID: String) -> Bool {

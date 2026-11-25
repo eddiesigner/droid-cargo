@@ -23,6 +23,11 @@ struct BrowserView: View {
             return true
         } isTargeted: { isDropTargeted = $0 }
         .overlay { dropHighlight }
+        .overlay {
+            if let preparation = browser.previewPreparation {
+                PreviewPreparationPanel(preparation: preparation, cancel: browser.cancelPreview)
+            }
+        }
         .quickLookPreview($browser.previewURL)
         .sheet(isPresented: $browser.isNewFolderShown) {
             NameSheet(title: "New Folder", actionTitle: "Create", initialName: String(localized: "untitled folder")) { name in
@@ -147,5 +152,41 @@ struct ItemContextMenu: View {
             Divider()
         }
         Button("Delete…", role: .destructive) { browser.pendingDeletion = items }
+    }
+}
+
+/// Shown while a large file copies to the Mac for Quick Look, which can take
+/// a while for long videos. Esc or Space cancels.
+private struct PreviewPreparationPanel: View {
+    let preparation: PreviewPreparation
+    let cancel: () -> Void
+
+    private static let width: CGFloat = 300
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Preparing Preview…")
+                .font(.headline)
+            Text(preparation.name)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            ProgressView(value: preparation.fraction)
+            HStack {
+                Text(preparation.fraction.formatted(.percent.precision(.fractionLength(0))))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                Spacer()
+                Button("Cancel", action: cancel)
+                    .keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(16)
+        .frame(width: Self.width)
+        .background(.regularMaterial, in: .rect(cornerRadius: 12))
+        .shadow(radius: 12, y: 4)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Preparing preview of \(preparation.name)")
     }
 }

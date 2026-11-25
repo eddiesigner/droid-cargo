@@ -13,7 +13,8 @@ public final class PreviewService {
     }
 
     /// Downloads the file once; later calls reuse the copy while size and date match.
-    public func localCopy(of item: RemoteItem, on deviceID: String) async throws -> URL {
+    /// `progress` gets bytes received; cancelling the task stops the download.
+    public func localCopy(of item: RemoteItem, on deviceID: String, progress: @escaping ByteProgress = { _ in }) async throws -> URL {
         let digest = SHA256.hash(data: Data("\(deviceID)|\(item.path)|\(item.size)|\(item.modified.timeIntervalSince1970)".utf8))
         let key = digest.prefix(12).map { String(format: "%02x", $0) }.joined()
         let target = folder.appending(path: key).appending(path: item.name)
@@ -25,7 +26,7 @@ public final class PreviewService {
         let session = try await devices.session(for: deviceID)
         let partial = target.appendingPathExtension("part")
         do {
-            try await session.download(item.path, to: partial, control: TransferControl()) { _ in }
+            try await session.download(item.path, to: partial, control: TransferControl(), progress: progress)
             try FileManager.default.moveItem(at: partial, to: target)
         } catch {
             try? FileManager.default.removeItem(at: partial)

@@ -115,9 +115,13 @@ public final class TransferService {
                 // 2. Move the files.
                 try await engine.run(files)
 
-                // 3. Let Gallery and other apps see new media.
-                if job.direction == .toDevice, options.scanMediaAfterUpload {
-                    await (try? sessions.get(.immediate))?.notifyMediaScanner(job.uploadedRemotePaths)
+                // 3. Let Gallery and other apps see new media, then drop the adb
+                //    shell as their "creator" (the index entry must exist first).
+                if job.direction == .toDevice, let session = try? await sessions.get(.immediate) {
+                    if options.scanMediaAfterUpload {
+                        await session.notifyMediaScanner(job.uploadedRemotePaths)
+                    }
+                    await session.releaseOwnership(job.uploadedRemotePaths)
                 }
                 job.phase = job.failures.isEmpty || job.completedFiles > 0 ? .completed : .failed(job.failures.first?.message ?? "")
             } catch is CancellationError {

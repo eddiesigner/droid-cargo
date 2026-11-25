@@ -1,6 +1,7 @@
 import AppKit
 import CargoServices
 import Foundation
+import Synchronization
 import Observation
 
 enum SidebarSelection: Hashable {
@@ -30,6 +31,32 @@ enum LoadState: Equatable {
 }
 
 /// Navigation and listing state for one window.
+/// A file being copied to the Mac so Quick Look can show it.
+struct PreviewPreparation: Equatable {
+    let name: String
+    var fraction: Double
+}
+
+/// Running total of bytes reported from the transfer thread.
+nonisolated private final class ReceivedBytes: Sendable {
+    private let total = Mutex<UInt64>(0)
+
+    func add(_ bytes: UInt64) -> UInt64 {
+        total.withLock {
+            $0 += bytes
+            return $0
+        }
+    }
+}
+
+/// How `load` treats what is already on screen.
+enum ReloadStyle {
+    /// Entering a folder: clear selection and search, show the cached listing or a spinner.
+    case navigate
+    /// Same folder again: keep files, selection and search until fresh data arrives.
+    case refresh
+}
+
 @Observable
 final class BrowserModel {
     let app: AppModel
@@ -78,7 +105,9 @@ final class BrowserModel {
     var operationError: String?
     /// Local copy shown by Quick Look.
     var previewURL: URL?
-    private(set) var isPreparingPreview = false
+    /// Shown once copying a file for Quick Look takes noticeably long.
+    private(set) var previewPreparation: PreviewPreparation?
+    private var previewTask: Task<Void, Never>?
 
     /// Listings already seen, shown instantly while a fresh one loads.
     private var cache: [String: [RemoteItem]] = [:]
@@ -232,7 +261,9 @@ final class BrowserModel {
     }
 
     /// Shows the cached listing right away, then replaces it with a fresh one.
-    func load() async {
+    /// A refresh keeps what is on screen (files, selection, search) until the
+    /// fresh listing arrives, so it never flashes an empty or loading view.
+    func load(_ style: ReloadStyle = .navigate) async {
         loadTask?.cancel()
         guard let deviceID, let path = currentPath else {
             return
@@ -242,13 +273,18 @@ final class BrowserModel {
             visibleItems = []
             loadedPath = path
         }
-        selection = []
-        searchText = ""
-        if let cached = cache[path] {
-            items = cached
-            state = .loaded
-        } else {
-            items = []
+        if style == .navigate {
+            selection = []
+            searchText = ""
+            if let cached = cache[path] {
+                items = cached
+                state = .loaded
+            } else {
+                items = []
+                state = .loading
+            }
+        } else if items.isEmpty {
+            // Nothing to keep on screen (e.g. Try Again after an error).
             state = .loading
         }
 
@@ -273,10 +309,7 @@ final class BrowserModel {
     }
 
     func refresh() {
-        if let currentPath {
-            cache[currentPath] = nil
-        }
-        Task { await load() }
+        Task { await load(.refresh) }
     }
 
     // MARK: File operations
@@ -357,23 +390,72 @@ final class BrowserModel {
         download(items, to: folder)
     }
 
-    /// Toggles Quick Look for the first selected file.
+    /// Toggles Quick Look for the first selected file. Pressed again while the
+    /// file is still copying, it cancels instead.
     func toggleQuickLook() async {
         if previewURL != nil {
             previewURL = nil
             return
         }
+        if previewTask != nil {
+            cancelPreview()
+            return
+        }
         guard let deviceID, let item = selectedItems.first(where: { !$0.isDirectory }) else {
             return
         }
-        isPreparingPreview = true
-        defer { isPreparingPreview = false }
+
+        let task = Task { await preparePreview(item, deviceID: deviceID) }
+        previewTask = task
+        await task.value
+    }
+
+    func cancelPreview() {
+        previewTask?.cancel()
+    }
+
+    private func preparePreview(_ item: RemoteItem, deviceID: String) async {
+        // Small files open before the panel would even appear; don't flash it.
+        let reveal = Task {
+            try await Task.sleep(for: Self.previewPanelDelay)
+            previewPreparation = PreviewPreparation(name: item.name, fraction: 0)
+        }
+        let received = ReceivedBytes()
+        defer {
+            reveal.cancel()
+            previewPreparation = nil
+            previewTask = nil
+        }
+
         do {
-            previewURL = try await app.previews.localCopy(of: item, on: deviceID)
+            let url = try await app.previews.localCopy(of: item, on: deviceID) { [weak self] bytes in
+                let total = received.add(bytes)
+                Task { @MainActor in self?.updatePreviewProgress(total, of: item.size) }
+            }
+            guard !Task.isCancelled else {
+                return
+            }
+            previewURL = url
+        } catch is CancellationError {
+            return
         } catch {
             operationError = error.localizedDescription
         }
     }
+
+    /// Redraws only when the bar would visibly move.
+    private func updatePreviewProgress(_ received: UInt64, of size: UInt64) {
+        guard let current = previewPreparation, size > 0 else {
+            return
+        }
+        let fraction = min(1, Double(received) / Double(size))
+        if fraction - current.fraction >= Self.previewProgressStep {
+            previewPreparation?.fraction = fraction
+        }
+    }
+
+    private static let previewPanelDelay: Duration = .milliseconds(400)
+    private static let previewProgressStep = 0.01
 
     /// Picks the first storage of the first online phone when nothing is selected.
     func selectDefaultIfNeeded() {

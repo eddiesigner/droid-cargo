@@ -53,6 +53,15 @@ private struct GeneralSettings: View {
 private struct TransferSettings: View {
     @Bindable var settings: AppSettings
 
+    /// Typed values outside the allowed range snap to the nearest end.
+    private var parallelTransfers: Binding<Int> {
+        Binding {
+            settings.parallelTransfers
+        } set: { value in
+            settings.parallelTransfers = value.clamped(to: AppSettings.parallelRange)
+        }
+    }
+
     var body: some View {
         Form {
             Picker("When a file already exists", selection: $settings.conflictPolicy) {
@@ -62,11 +71,28 @@ private struct TransferSettings: View {
                 Text("Skip").tag(ConflictPolicy.skip)
             }
             Section {
-                Stepper(value: $settings.parallelTransfers, in: AppSettings.parallelRange) {
-                    LabeledContent("Files at the same time", value: settings.parallelTransfers.formatted())
+                Picker("Date of copied files", selection: $settings.fileDates) {
+                    Text("Original Date").tag(FileDatePolicy.keepOriginal)
+                    Text("Date Copied").tag(FileDatePolicy.useTransferDate)
                 }
             } footer: {
-                Text("Copying a few files at once is faster for many small photos. Use 1 for older phones.")
+                Text("Original Date keeps the date a file had before copying, such as when a photo was taken.")
+            }
+            Section {
+                // Value in a field next to the arrows, like macOS's own number steppers.
+                LabeledContent("Files to copy at once") {
+                    HStack(spacing: 4) {
+                        TextField("Files to copy at once", value: parallelTransfers, format: .number)
+                            .labelsHidden()
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 40)
+                        Stepper("Files to copy at once", value: parallelTransfers, in: AppSettings.parallelRange)
+                            .labelsHidden()
+                    }
+                }
+            } footer: {
+                Text("Copying several files at once can speed up folders of small photos. Keep 1 for older phones.")
             }
             Section {
                 Toggle("Add uploaded photos and music to the phone’s library", isOn: $settings.scanMedia)
@@ -75,6 +101,9 @@ private struct TransferSettings: View {
             }
         }
         .formStyle(.grouped)
+        // Size the window to every row instead of scrolling the last one away.
+        .scrollDisabled(true)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -105,5 +134,11 @@ private struct AdvancedSettings: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+private extension Int {
+    func clamped(to range: ClosedRange<Int>) -> Int {
+        Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }
 }
