@@ -513,6 +513,7 @@ struct HelpCommands: Commands {
     var body: some Commands {
         CommandGroup(replacing: .help) {
             Button("Connection Help") { ConnectionHelp.show() }
+                .keyboardShortcut("?", modifiers: .command)
         }
     }
 }

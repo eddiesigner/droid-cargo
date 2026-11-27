@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Text link: pointing-hand cursor and underline on hover, dimmed while pressed.
+/// Text link in the app accent color: pointing-hand cursor and underline on hover, dimmed while pressed.
 /// The stock `.link` style gives no hover feedback at all.
 struct HoverLinkButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -14,7 +14,7 @@ struct HoverLinkButtonStyle: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .foregroundStyle(isEnabled ? AnyShapeStyle(.link) : AnyShapeStyle(.tertiary))
+                .foregroundStyle(isEnabled ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.tertiary))
                 .underline(isHovered && isEnabled)
                 .opacity(configuration.isPressed ? 0.6 : 1)
                 .contentShape(.rect)

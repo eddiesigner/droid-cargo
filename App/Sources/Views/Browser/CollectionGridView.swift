@@ -304,6 +304,10 @@ final class FileCollectionView: NSCollectionView {
             }
             return
         }
+        if event.keyCode == KeyCode.return, flags.isEmpty {
+            coordinator?.browser.renameSelection()
+            return
+        }
         if event.keyCode == KeyCode.delete, flags == .command {
             coordinator?.deleteSelection()
             return

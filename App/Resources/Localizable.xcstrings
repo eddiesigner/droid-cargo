@@ -81,6 +81,22 @@
         }
       }
     },
+    "%@ free": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ frei"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ libres"
+          }
+        }
+      }
+    },
     "%@ · %@ · %@": {
       "localizations": {
         "de": {
@@ -399,6 +415,22 @@
         }
       }
     },
+    "About DroidCargo": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Über DroidCargo"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acerca de DroidCargo"
+          }
+        }
+      }
+    },
     "Add to Favorites": {
       "localizations": {
         "de": {
@@ -507,6 +539,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ya hay un elemento con este nombre en %@. ¿Quieres reemplazarlo?"
+          }
+        }
+      }
+    },
+    "Android %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android %@"
           }
         }
       }
@@ -1007,6 +1055,22 @@
         }
       }
     },
+    "Connected at USB 2 speed or slower. A USB 3 cable plugged straight into the Mac copies much faster.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit USB‑2‑Geschwindigkeit oder langsamer verbunden. Ein USB‑3‑Kabel direkt am Mac kopiert deutlich schneller."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectado a velocidad USB 2 o inferior. Un cable USB 3 conectado directamente al Mac copia mucho más rápido."
+          }
+        }
+      }
+    },
     "Connecting…": {
       "localizations": {
         "de": {
@@ -1179,6 +1243,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "No se pudo buscar"
+          }
+        }
+      }
+    },
+    "Crafted with ❤️ by": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit ❤️ gemacht von"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hecho con ❤️ por"
           }
         }
       }
@@ -1647,6 +1727,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Carpeta contenedora"
+          }
+        }
+      }
+    },
+    "Enjoying DroidCargo?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gefällt dir DroidCargo?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Te gusta DroidCargo?"
           }
         }
       }
@@ -3181,6 +3277,22 @@
         }
       }
     },
+    "Show Transfers": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übertragungen anzeigen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar transferencias"
+          }
+        }
+      }
+    },
     "Show downloaded files in Finder": {
       "localizations": {
         "de": {
@@ -3321,6 +3433,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Se queda en “Esperando permiso”"
+          }
+        }
+      }
+    },
+    "Support DroidCargo": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DroidCargo unterstützen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apoyar DroidCargo"
+          }
+        }
+      }
+    },
+    "Support it on Ko-fi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unterstütze es auf Ko-fi"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apóyalo en Ko-fi"
           }
         }
       }
@@ -3945,6 +4089,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Espacio usado"
+          }
+        }
+      }
+    },
+    "Version %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versión %@"
           }
         }
       }

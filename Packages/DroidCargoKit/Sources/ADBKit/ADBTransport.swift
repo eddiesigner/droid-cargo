@@ -12,8 +12,9 @@ public final class ADBTransport: DeviceTransport {
     private static let featureStatV2 = "stat_v2"
 
     private let client: ADBClient
-    /// Marketing names fetched once per serial ("Galaxy S23" instead of "SM S911B").
-    private let names = Mutex<[String: String]>([:])
+    /// Fetched once per serial: marketing name ("Galaxy S23" instead of
+    /// "SM S911B") and Android version.
+    private let details = Mutex<[String: DeviceDetails]>([:])
 
     public init(client: ADBClient) {
         self.client = client
@@ -43,23 +44,33 @@ public final class ADBTransport: DeviceTransport {
         var devices: [Device] = []
         for info in infos {
             let state = info.deviceState
-            let name = state == .online ? await displayName(info) : info.model
-            devices.append(Device(id: info.serial, name: name, model: info.model, state: state, transport: .adb))
+            let speed = USBRegistry.speed(serial: info.serial)
+            guard state == .online else {
+                devices.append(Device(id: info.serial, name: info.model, model: info.model, state: state, transport: .adb, usbSpeed: speed))
+                continue
+            }
+            let found = await deviceDetails(info)
+            devices.append(Device(
+                id: info.serial,
+                name: found.name,
+                model: info.model,
+                state: state,
+                transport: .adb,
+                androidVersion: found.androidVersion,
+                usbSpeed: speed
+            ))
         }
         return devices
     }
 
-    private func displayName(_ info: ADBDeviceInfo) async -> String {
-        if let cached = names.withLock({ $0[info.serial] }) {
+    private func deviceDetails(_ info: ADBDeviceInfo) async -> DeviceDetails {
+        if let cached = details.withLock({ $0[info.serial] }) {
             return cached
         }
-        let output = try? await client.shell("getprop ro.product.marketname; getprop ro.product.model", serial: info.serial)
-        let name = output?
-            .split(separator: "\n")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first { !$0.isEmpty } ?? info.model
-        names.withLock { $0[info.serial] = name }
-        return name
+        let output = try? await client.shell(DeviceDetails.command, serial: info.serial)
+        let found = DeviceDetails(getpropOutput: output ?? "", fallbackName: info.model)
+        details.withLock { $0[info.serial] = found }
+        return found
     }
 
     public func openSession(_ device: Device) async throws -> any DeviceSession {

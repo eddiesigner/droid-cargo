@@ -20,13 +20,47 @@ public struct Device: Identifiable, Hashable, Sendable {
     public var model: String
     public var state: DeviceState
     public var transport: TransportKind
+    /// "17", or nil until the phone allows access.
+    public var androidVersion: String?
+    /// Negotiated USB speed, nil when the Mac doesn't report it.
+    public var usbSpeed: USBSpeed?
 
-    public init(id: String, name: String, model: String, state: DeviceState, transport: TransportKind) {
+    public init(
+        id: String,
+        name: String,
+        model: String,
+        state: DeviceState,
+        transport: TransportKind,
+        androidVersion: String? = nil,
+        usbSpeed: USBSpeed? = nil
+    ) {
         self.id = id
         self.name = name
         self.model = model
         self.state = state
         self.transport = transport
+        self.androidVersion = androidVersion
+        self.usbSpeed = usbSpeed
+    }
+}
+
+/// USB generation the cable and ports agreed on. Slow cables show up as `.usb2`.
+public enum USBSpeed: Sendable, Hashable {
+    case usb1
+    case usb2
+    case usb3
+    case usb3Fast
+
+    private static let usb2BitsPerSecond: UInt64 = 480_000_000
+    private static let usb3BitsPerSecond: UInt64 = 5_000_000_000
+
+    public init(bitsPerSecond: UInt64) {
+        switch bitsPerSecond {
+        case ..<Self.usb2BitsPerSecond: self = .usb1
+        case ..<Self.usb3BitsPerSecond: self = .usb2
+        case Self.usb3BitsPerSecond: self = .usb3
+        default: self = .usb3Fast
+        }
     }
 }
 

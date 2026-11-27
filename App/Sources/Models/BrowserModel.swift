@@ -210,6 +210,14 @@ final class BrowserModel {
         selection.compactMap { itemsByID[$0] }
     }
 
+    /// The one selected item, for actions that take a single item (Open, Rename).
+    var singleSelection: RemoteItem? {
+        selection.count == 1 ? selectedItems.first : nil
+    }
+
+    /// Bumped by Find (⌘F); the view moves focus to the search field.
+    private(set) var searchFocusRequests = 0
+
     var canGoBack: Bool { historyIndex > 0 }
     var canGoForward: Bool { historyIndex < history.count - 1 }
 
@@ -404,6 +412,26 @@ final class BrowserModel {
             return
         }
         download(items, to: folder)
+    }
+
+    func focusSearch() {
+        searchFocusRequests += 1
+    }
+
+    /// Folders open in place; files open in Quick Look, like Finder's ⌘O.
+    func openSelection() {
+        guard let item = singleSelection else {
+            return
+        }
+        if item.isDirectory {
+            open(item)
+            return
+        }
+        Task { await toggleQuickLook() }
+    }
+
+    func renameSelection() {
+        renameTarget = singleSelection
     }
 
     /// Toggles Quick Look for the first selected file. Pressed again while the

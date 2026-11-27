@@ -48,24 +48,29 @@ private struct GeneralSettings: View {
             } footer: {
                 Text("Automatic follows your Mac’s language, or English if it isn’t available.")
             }
-            LabeledContent("Download to") {
-                HStack {
-                    Label(settings.downloadFolder.lastPathComponent, systemImage: "folder")
-                    Button("Choose…") {
-                        let panel = NSOpenPanel()
-                        panel.canChooseFiles = false
-                        panel.canChooseDirectories = true
-                        panel.canCreateDirectories = true
-                        panel.directoryURL = settings.downloadFolder
-                        if panel.runModal() == .OK, let url = panel.url {
-                            settings.downloadFolder = url
+            Section {
+                LabeledContent("Download to") {
+                    HStack {
+                        Label(settings.downloadFolder.lastPathComponent, systemImage: "folder")
+                        Button("Choose…") {
+                            let panel = NSOpenPanel()
+                            panel.canChooseFiles = false
+                            panel.canChooseDirectories = true
+                            panel.canCreateDirectories = true
+                            panel.directoryURL = settings.downloadFolder
+                            if panel.runModal() == .OK, let url = panel.url {
+                                settings.downloadFolder = url
+                            }
                         }
                     }
                 }
+                Toggle("Show downloaded files in Finder", isOn: $settings.revealAfterDownload)
+                Toggle("Notify me when transfers finish in the background", isOn: $settings.notifyWhenDone)
+                Toggle("Show hidden files", isOn: $settings.showHiddenFiles)
+            } footer: {
+                SupportNote()
+                    .padding(.top)
             }
-            Toggle("Show downloaded files in Finder", isOn: $settings.revealAfterDownload)
-            Toggle("Notify me when transfers finish in the background", isOn: $settings.notifyWhenDone)
-            Toggle("Show hidden files", isOn: $settings.showHiddenFiles)
         }
         .formStyle(.grouped)
     }

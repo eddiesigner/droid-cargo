@@ -371,6 +371,10 @@ final class FileTable: NSTableView {
             coordinator?.open(at: selectedRow)
             return
         }
+        if event.keyCode == KeyCode.return, flags.isEmpty {
+            coordinator?.browser.renameSelection()
+            return
+        }
         if (event.keyCode == KeyCode.delete && flags == .command) {
             coordinator?.deleteSelection()
             return
@@ -396,6 +400,7 @@ final class FileTable: NSTableView {
 
 enum KeyCode {
     static let space: UInt16 = 49
+    static let `return`: UInt16 = 36
     static let delete: UInt16 = 51
     static let downArrow: UInt16 = 125
 }

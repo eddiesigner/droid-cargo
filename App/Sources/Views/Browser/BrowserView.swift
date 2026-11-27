@@ -5,6 +5,7 @@ import SwiftUI
 struct BrowserView: View {
     @Bindable var browser: BrowserModel
     @State private var isDropTargeted = false
+    @FocusState private var isSearchFocused: Bool
 
     private var settings: AppSettings { browser.app.settings }
 
@@ -19,6 +20,8 @@ struct BrowserView: View {
         .navigationTitle(browser.breadcrumbs.last?.name ?? "")
         .navigationSubtitle(browser.device?.name ?? "")
         .searchable(text: $browser.searchText, placement: .toolbar, prompt: "Search This Folder")
+        .searchFocused($isSearchFocused)
+        .onChange(of: browser.searchFocusRequests) { isSearchFocused = true }
         .toolbar { BrowserToolbar(browser: browser) }
         .dropDestination(for: URL.self) { urls, _ in
             browser.upload(urls)

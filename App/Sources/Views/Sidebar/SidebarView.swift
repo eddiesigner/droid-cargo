@@ -91,19 +91,109 @@ private struct SidebarBackdrop: NSViewRepresentable {
     func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }
 
-/// Finder-style header: just the name. Readiness shows in the rows below it.
+/// Finder-style header: the name, then Android version and USB speed.
+/// Readiness shows in the rows below it.
 private struct DeviceHeader: View {
     let device: Device
 
+    /// "Android 17 · USB 2"; empty until the phone allows access.
+    private var details: String {
+        var parts: [String] = []
+        if let version = device.androidVersion {
+            parts.append(String(localized: "Android \(version)"))
+        }
+        if let speed = device.usbSpeed {
+            parts.append(speed.title)
+        }
+        return parts.joined(separator: " · ")
+    }
+
     var body: some View {
-        Text(device.name)
+        VStack(alignment: .leading, spacing: 1) {
+            Text(device.name)
+            if !details.isEmpty {
+                Text(details)
+                    .font(.caption)
+                    .fontWeight(.regular)
+                    .foregroundStyle(.tertiary)
+                    .help(device.usbSpeed?.help ?? "")
+            }
+        }
     }
 }
 
+/// Storage name over a thin capacity bar and free space, like Finder's volume info.
 private struct StorageRow: View {
     let storage: Storage
 
     var body: some View {
-        Label(storage.name, systemImage: storage.kind == .internalStorage ? "internaldrive" : "sdcard")
+        Label {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(storage.name)
+                CapacityBar(storage: storage)
+                Text("\(Int64(storage.freeBytes).formatted(.byteCount(style: .file))) free")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 3)
+            .help("\(Int64(storage.freeBytes).formatted(.byteCount(style: .file))) available of \(Int64(storage.totalBytes).formatted(.byteCount(style: .file)))")
+        } icon: {
+            Image(systemName: storage.kind == .internalStorage ? "internaldrive" : "sdcard")
+        }
+    }
+}
+
+/// A 4 pt bar. Accent when idle, white on the selected (accent) row, orange when nearly full.
+private struct CapacityBar: View {
+    private static let height: CGFloat = 4
+    private static let nearlyFull = 0.9
+
+    let storage: Storage
+    @Environment(\.backgroundProminence) private var prominence
+
+    private var fraction: Double {
+        storage.totalBytes == 0 ? 0 : Double(storage.usedBytes) / Double(storage.totalBytes)
+    }
+
+    private var fill: Color {
+        if prominence == .increased {
+            return .white
+        }
+        return fraction > Self.nearlyFull ? .orange : .accentColor
+    }
+
+    var body: some View {
+        Capsule()
+            .fill(.quaternary)
+            .overlay(alignment: .leading) {
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(fill)
+                        .frame(width: proxy.size.width * fraction)
+                }
+            }
+            .frame(height: Self.height)
+            .accessibilityElement()
+            .accessibilityLabel("Used space")
+            .accessibilityValue(Text(fraction, format: .percent.precision(.fractionLength(0))))
+    }
+}
+
+private extension USBSpeed {
+    var title: String {
+        switch self {
+        case .usb1: "USB 1"
+        case .usb2: "USB 2"
+        case .usb3: "USB 3"
+        case .usb3Fast: "USB 3.2"
+        }
+    }
+
+    /// Slow links explain themselves; fast ones need no tooltip.
+    var help: String {
+        switch self {
+        case .usb1, .usb2: String(localized: "Connected at USB 2 speed or slower. A USB 3 cable plugged straight into the Mac copies much faster.")
+        case .usb3, .usb3Fast: ""
+        }
     }
 }

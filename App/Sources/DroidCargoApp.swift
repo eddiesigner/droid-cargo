@@ -25,7 +25,17 @@ struct DroidCargoApp: App {
             BrowserCommands()
             SidebarCommands()
             HelpCommands()
+            SupportCommands()
         }
+
+        Window("About DroidCargo", id: AboutWindow.id) {
+            AboutView()
+                .windowMinimizeBehavior(.disabled)
+        }
+        .windowResizability(.contentSize)
+        .restorationBehavior(.disabled)
+        .defaultPosition(.center)
+        .commandsRemoved()
 
         Settings {
             SettingsView(settings: app.settings, app: app)
@@ -48,14 +58,54 @@ extension FocusedValues {
 struct BrowserCommands: Commands {
     @FocusedValue(\.browser) private var browser
 
+    private var hasSelectedFile: Bool {
+        browser?.selectedItems.contains { !$0.isDirectory } ?? false
+    }
+
+    private func copyPath() {
+        guard let item = browser?.singleSelection else {
+            return
+        }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(item.path, forType: .string)
+    }
+
     var body: some Commands {
+        // Finder's shortcuts where Finder has the same action.
         CommandGroup(after: .newItem) {
+            Button("New Folder") { browser?.isNewFolderShown = true }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .disabled(browser?.currentPath == nil)
+            Divider()
+            Button("Open") { browser?.openSelection() }
+                .keyboardShortcut("o", modifiers: .command)
+                .disabled(browser?.singleSelection == nil)
+            Button("Quick Look") { Task { await browser?.toggleQuickLook() } }
+                .keyboardShortcut("y", modifiers: .command)
+                .disabled(!hasSelectedFile)
+            // Return renames in the file views; a menu shortcut would steal it from text fields.
+            Button("Rename…") { browser?.renameSelection() }
+                .disabled(browser?.singleSelection == nil)
+            Divider()
             Button("Upload Files…") { browser?.requestUpload() }
                 .keyboardShortcut("u", modifiers: [.command, .shift])
                 .disabled(browser?.device == nil)
+            Button("Download") { browser?.download(browser?.selectedItems ?? []) }
+                .keyboardShortcut("d", modifiers: [.command, .shift])
+                .disabled(browser?.selection.isEmpty ?? true)
             Button("Import Photos & Videos…") { browser?.isPhotoImportShown = true }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
                 .disabled(browser?.device == nil)
+        }
+
+        CommandGroup(after: .pasteboard) {
+            Button("Copy Path") { copyPath() }
+                .keyboardShortcut("c", modifiers: [.command, .option])
+                .disabled(browser?.singleSelection == nil)
+            Divider()
+            Button("Search This Folder") { browser?.focusSearch() }
+                .keyboardShortcut("f", modifiers: .command)
+                .disabled(browser?.currentPath == nil)
         }
 
         CommandMenu("Go") {
@@ -96,6 +146,10 @@ struct BrowserCommands: Commands {
             }
             .keyboardShortcut("i", modifiers: [.command, .control])
             .disabled(browser == nil)
+            // Safari's shortcut for its Downloads list.
+            Button("Show Transfers") { browser?.app.isTransfersPopoverShown = true }
+                .keyboardShortcut("l", modifiers: [.command, .option])
+                .disabled(browser == nil)
             Divider()
 
         }
