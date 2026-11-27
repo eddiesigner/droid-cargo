@@ -1,10 +1,41 @@
 import CargoServices
 import Foundation
+import SwiftUI
 import Observation
 
 enum BrowserLayout: String, CaseIterable {
     case list
     case grid
+}
+
+/// What the file list and grid are ordered by.
+enum SortKey: String, CaseIterable {
+    case name
+    case kind
+    case dateModified
+    case size
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .name: "Name"
+        case .kind: "Kind"
+        case .dateModified: "Date Modified"
+        case .size: "Size"
+        }
+    }
+
+    /// Finder's direction when you pick a key: A–Z, newest first, largest first.
+    var defaultDirection: SortDirection {
+        switch self {
+        case .name, .kind: .ascending
+        case .dateModified, .size: .descending
+        }
+    }
+}
+
+enum SortDirection: String, CaseIterable {
+    case ascending
+    case descending
 }
 
 enum PhotoOrganization: String, CaseIterable {
@@ -22,6 +53,8 @@ final class AppSettings {
         static let parallelTransfers = "parallelTransfers"
         static let showHiddenFiles = "showHiddenFiles"
         static let layout = "layout"
+        static let sortKey = "sortKey"
+        static let sortDirection = "sortDirection"
         static let gridThumbnailSize = "gridThumbnailSize"
         static let notifyWhenDone = "notifyWhenDone"
         static let revealAfterDownload = "revealAfterDownload"
@@ -51,6 +84,12 @@ final class AppSettings {
     }
     var showHiddenFiles: Bool {
         didSet { defaults.set(showHiddenFiles, forKey: Key.showHiddenFiles) }
+    }
+    var sortKey: SortKey {
+        didSet { defaults.set(sortKey.rawValue, forKey: Key.sortKey) }
+    }
+    var sortDirection: SortDirection {
+        didSet { defaults.set(sortDirection.rawValue, forKey: Key.sortDirection) }
     }
     var layout: BrowserLayout {
         didSet { defaults.set(layout.rawValue, forKey: Key.layout) }
@@ -90,6 +129,8 @@ final class AppSettings {
         parallelTransfers = defaults.object(forKey: Key.parallelTransfers) as? Int ?? 1
         showHiddenFiles = defaults.bool(forKey: Key.showHiddenFiles)
         layout = defaults.string(forKey: Key.layout).flatMap(BrowserLayout.init) ?? .list
+        sortKey = defaults.string(forKey: Key.sortKey).flatMap(SortKey.init) ?? .name
+        sortDirection = defaults.string(forKey: Key.sortDirection).flatMap(SortDirection.init) ?? .ascending
         gridThumbnailSize = defaults.object(forKey: Key.gridThumbnailSize) as? Double ?? 128
         notifyWhenDone = defaults.object(forKey: Key.notifyWhenDone) as? Bool ?? true
         revealAfterDownload = defaults.bool(forKey: Key.revealAfterDownload)
@@ -116,5 +157,16 @@ final class AppSettings {
             list.append(path)
         }
         favorites[deviceID] = list
+    }
+}
+
+extension AppSettings {
+    /// Picks a key with its usual direction; picking the current key again keeps the direction.
+    func sort(by key: SortKey) {
+        guard key != sortKey else {
+            return
+        }
+        sortKey = key
+        sortDirection = key.defaultDirection
     }
 }

@@ -85,6 +85,11 @@ struct BrowserCommands: Commands {
             }
             .keyboardShortcut(".", modifiers: [.command, .shift])
             Divider()
+            if let settings = browser?.app.settings {
+                Menu("Sort By") {
+                    SortMenuItems(settings: settings)
+                }
+            }
             // The info panel is a plain view, so the system Inspector command doesn't reach it.
             Button(browser?.isInspectorShown == true ? "Hide Inspector" : "Show Inspector") {
                 browser?.isInspectorShown.toggle()

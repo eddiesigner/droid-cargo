@@ -94,9 +94,6 @@ final class BrowserModel {
             }
         }
     }
-    var sortOrder = [KeyPathComparator(\RemoteItem.name, comparator: .localizedStandard)] {
-        didSet { rebuildVisibleItems() }
-    }
     var isInspectorShown = false
     var isPhotoImportShown = false
     var isNewFolderShown = false
@@ -121,9 +118,12 @@ final class BrowserModel {
         observeHiddenFilesSetting()
     }
 
+    /// Re-sorts or re-filters when the hidden-files or sort settings change.
     private func observeHiddenFilesSetting() {
         withObservationTracking {
             _ = app.settings.showHiddenFiles
+            _ = app.settings.sortKey
+            _ = app.settings.sortDirection
         } onChange: { [weak self] in
             Task { @MainActor in
                 self?.rebuildVisibleItems()
@@ -141,7 +141,7 @@ final class BrowserModel {
         let items = items
         let query = searchText.trimmingCharacters(in: .whitespaces)
         let showHidden = app.settings.showHiddenFiles
-        let sortOrder = sortOrder
+        let sortOrder = Self.comparators(app.settings.sortKey, app.settings.sortDirection)
 
         guard items.count > Self.inlineSortLimit else {
             visibleItems = Self.arrange(items, query: query, showHidden: showHidden, sortOrder: sortOrder)
@@ -155,6 +155,22 @@ final class BrowserModel {
                 return
             }
             visibleItems = result
+        }
+    }
+
+    /// Ties fall back to the name so equal sizes or kinds stay in a stable order.
+    private static func comparators(_ key: SortKey, _ direction: SortDirection) -> [KeyPathComparator<RemoteItem>] {
+        let order: SortOrder = direction == .ascending ? .forward : .reverse
+        let byName = KeyPathComparator(\RemoteItem.name, comparator: .localizedStandard, order: order)
+        switch key {
+        case .name:
+            return [byName]
+        case .kind:
+            return [KeyPathComparator(\RemoteItem.fileExtension, comparator: .localizedStandard, order: order), byName]
+        case .dateModified:
+            return [KeyPathComparator(\RemoteItem.modified, order: order), byName]
+        case .size:
+            return [KeyPathComparator(\RemoteItem.size, order: order), byName]
         }
     }
 

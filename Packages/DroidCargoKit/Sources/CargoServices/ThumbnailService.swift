@@ -17,6 +17,8 @@ import UniformTypeIdentifiers
 public actor ThumbnailService {
     public static let maxImageBytes: UInt64 = 40 * 1024 * 1024
     private static let embeddedPreviewBytes = 64 * 1024
+    /// Past this, reading up to a HEIC preview costs about as much as the full-file path.
+    private static let maxPreviewReadBytes: UInt64 = 4 * 1024 * 1024
     private static let videoHeadBytes = 4 * 1024 * 1024
     private static let videoTailBytes = 2 * 1024 * 1024
     /// Below this, copying the whole video is simpler than stitching head and tail.
@@ -29,8 +31,9 @@ public actor ThumbnailService {
     private static let concurrentGenerations = 4
     private static let memoryCacheLimit = 800
     private static let jpegQuality = 0.8
-    private static let cacheFolderName = "Thumbnails-2"
-    private static let legacyCacheFolder = "Thumbnails"
+    private static let cacheFolderName = "Thumbnails-3"
+    /// Earlier builds cached half-gray (1) and black HEIC (2) thumbnails.
+    private static let legacyCacheFolders = ["Thumbnails", "Thumbnails-2"]
 
     private let sessions: @Sendable (String) async throws -> any DeviceSession
     private let cacheFolder: URL
@@ -46,8 +49,10 @@ public actor ThumbnailService {
 
     public init(devices: DeviceService) {
         let root = URL.cachesDirectory.appending(path: "app.droidcargo")
-        // Earlier builds cached half-gray thumbnails (see embeddedPreview); start over.
-        try? FileManager.default.removeItem(at: root.appending(path: Self.legacyCacheFolder))
+        // Earlier builds cached broken thumbnails; start over.
+        for legacy in Self.legacyCacheFolders {
+            try? FileManager.default.removeItem(at: root.appending(path: legacy))
+        }
         let folder = root.appending(path: Self.cacheFolderName)
         self.init(sessions: { id in try await devices.session(for: id) }, cacheFolder: folder)
     }
@@ -105,7 +110,7 @@ public actor ThumbnailService {
 
         if embeddedFormats.contains(item.fileExtension),
            let prefix = try? await session.readPrefix(item.path, maxBytes: embeddedPreviewBytes),
-           let embedded = embeddedPreview(prefix, maxPixelSize: maxPixelSize) {
+           let embedded = embeddedPreview(await completePreviewData(prefix, item: item, session: session), maxPixelSize: maxPixelSize) {
             return embedded
         }
 
@@ -115,6 +120,18 @@ public actor ThumbnailService {
         return await withTempCopy(of: item, session: session) { url in
             await decode(url, maxPixelSize: maxPixelSize)
         }
+    }
+
+    /// HEIC previews can end past the first read, and a cut-off one decodes
+    /// as solid black. Reads up to the preview's end when the file says so.
+    private static func completePreviewData(_ prefix: Data, item: RemoteItem, session: any DeviceSession) async -> Data {
+        guard let end = HEIFLayout.previewEnd(in: prefix),
+              end > prefix.count,
+              UInt64(end) <= min(item.size, maxPreviewReadBytes),
+              let longer = try? await session.readPrefix(item.path, maxBytes: end) else {
+            return prefix
+        }
+        return longer
     }
 
     /// The preview the camera stored in the file header, if there is one and it is large enough.

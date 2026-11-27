@@ -35,7 +35,6 @@ struct FileTableView: NSViewRepresentable {
         for column in TableColumn.allCases {
             table.addTableColumn(column.makeColumn())
         }
-        table.sortDescriptors = [TableColumn.name.sortDescriptor(ascending: true)]
         context.coordinator.tableView = table
 
         let scroll = NSScrollView()
@@ -46,6 +45,8 @@ struct FileTableView: NSViewRepresentable {
     }
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {
+        // Read here so SwiftUI updates the header when the sort changes elsewhere.
+        _ = (browser.app.settings.sortKey, browser.app.settings.sortDirection)
         context.coordinator.update(items: browser.visibleItems, selection: browser.selection)
     }
 }
@@ -86,7 +87,7 @@ enum TableColumn: String, CaseIterable {
         column.title = title
         column.minWidth = widths.min
         column.width = widths.ideal
-        column.sortDescriptorPrototype = sortDescriptor(ascending: self != .modified && self != .size)
+        column.sortDescriptorPrototype = sortDescriptor(ascending: sortKey.defaultDirection == .ascending)
         if self == .size {
             column.headerCell.alignment = .right
         }
@@ -97,16 +98,20 @@ enum TableColumn: String, CaseIterable {
         NSSortDescriptor(key: rawValue, ascending: ascending)
     }
 
-    func comparator(ascending: Bool) -> KeyPathComparator<RemoteItem> {
-        let order: SortOrder = ascending ? .forward : .reverse
+    var sortKey: SortKey {
         switch self {
-        case .name, .kind:
-            return KeyPathComparator(\.name, comparator: .localizedStandard, order: order)
-        case .modified:
-            return KeyPathComparator(\.modified, order: order)
-        case .size:
-            return KeyPathComparator(\.size, order: order)
+        case .name: .name
+        case .modified: .dateModified
+        case .size: .size
+        case .kind: .kind
         }
+    }
+
+    init?(_ key: SortKey) {
+        guard let column = Self.allCases.first(where: { $0.sortKey == key }) else {
+            return nil
+        }
+        self = column
     }
 }
 
@@ -119,6 +124,7 @@ final class TableCoordinator: NSObject, NSTableViewDataSource, NSTableViewDelega
     weak var tableView: NSTableView?
     private(set) var items: [RemoteItem] = []
     private var isApplyingSelection = false
+    private var isApplyingSort = false
     private let promiseQueue: OperationQueue = {
         let queue = OperationQueue()
         queue.qualityOfService = .userInitiated
@@ -133,6 +139,7 @@ final class TableCoordinator: NSObject, NSTableViewDataSource, NSTableViewDelega
         guard let tableView else {
             return
         }
+        applySort(key: browser.app.settings.sortKey, direction: browser.app.settings.sortDirection, to: tableView)
         if newItems != items {
             items = newItems
             tableView.reloadData()
@@ -203,10 +210,30 @@ final class TableCoordinator: NSObject, NSTableViewDataSource, NSTableViewDelega
 
     // MARK: Sorting, selection, type-select
 
+    /// Header clicks change the shared sort setting, which the grid and menus use too.
     func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
-        browser.sortOrder = tableView.sortDescriptors.compactMap { descriptor in
-            descriptor.key.flatMap(TableColumn.init).map { $0.comparator(ascending: descriptor.ascending) }
+        guard !isApplyingSort,
+              let descriptor = tableView.sortDescriptors.first,
+              let column = descriptor.key.flatMap(TableColumn.init(rawValue:)) else {
+            return
         }
+        let settings = browser.app.settings
+        settings.sortKey = column.sortKey
+        settings.sortDirection = descriptor.ascending ? .ascending : .descending
+    }
+
+    /// Shows the setting's sort in the header (it may have changed from the menu).
+    private func applySort(key: SortKey, direction: SortDirection, to tableView: NSTableView) {
+        guard let column = TableColumn(key) else {
+            return
+        }
+        let wanted = column.sortDescriptor(ascending: direction == .ascending)
+        guard tableView.sortDescriptors.first != wanted else {
+            return
+        }
+        isApplyingSort = true
+        tableView.sortDescriptors = [wanted]
+        isApplyingSort = false
     }
 
     func tableViewSelectionDidChange(_ notification: Notification) {

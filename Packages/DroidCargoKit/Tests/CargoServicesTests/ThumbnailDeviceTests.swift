@@ -55,6 +55,54 @@ struct ThumbnailDeviceTests {
         #expect(grayNow == 0)
     }
 
+    /// iPhone HEICs often store their preview past the first 64 KB; decoded
+    /// from the prefix it came out black (reported for IMG_0006 / IMG_0007).
+    @Test func heicThumbnailsAreNotBlack() async throws {
+        let client = ADBClient(launcher: ADBServerLauncher())
+        let infos = try await client.trackDevices().first { _ in true } ?? []
+        let info = try #require(infos.first { $0.deviceState == .online })
+        let device = Device(id: info.serial, name: info.model, model: info.model, state: .online, transport: .adb)
+        let session = try await ADBTransport(client: client).openSession(device)
+
+        let samples = try await session.list(Self.cameraFolder)
+            .filter { $0.fileExtension == "heic" && $0.name.hasPrefix("IMG_00") }
+            .sorted { $0.name < $1.name }
+            .prefix(Self.heicSampleCount)
+        let cache = FileManager.default.temporaryDirectory.appending(path: "thumb-heic-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: cache) }
+        let service = ThumbnailService(sessions: { _ in session }, cacheFolder: cache)
+
+        var black: [String] = []
+        for item in samples {
+            guard let image = await service.thumbnail(for: item, deviceID: device.id, maxPixelSize: Self.sizes[0]) else {
+                continue
+            }
+            if Self.meanBrightness(image) < Self.blackLevel {
+                black.append(item.name)
+            }
+        }
+        print("DEVICE black HEIC thumbnails: \(black.count)/\(samples.count) \(black)")
+        #expect(black.isEmpty)
+    }
+
+    private static let heicSampleCount = 20
+    /// Mean 0–255 brightness below which a thumbnail counts as black.
+    private static let blackLevel = 3.0
+
+    private static func meanBrightness(_ image: CGImage) -> Double {
+        let side = 16
+        var pixels = [UInt8](repeating: 0, count: side * side * 4)
+        guard let context = CGContext(
+            data: &pixels, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side * 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        ) else {
+            return 0
+        }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: side, height: side))
+        let total = stride(from: 0, to: pixels.count, by: 4).reduce(0) { $0 + Int(pixels[$1]) + Int(pixels[$1 + 1]) + Int(pixels[$1 + 2]) }
+        return Double(total) / Double(side * side * 3)
+    }
+
     /// True when the bottom row is a flat fill of ImageIO's gray.
     private static func hasGrayBottom(_ image: CGImage) -> Bool {
         let width = image.width

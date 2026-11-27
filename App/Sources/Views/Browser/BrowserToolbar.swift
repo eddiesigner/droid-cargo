@@ -26,6 +26,13 @@ struct BrowserToolbar: ToolbarContent {
             .help("Change how items are shown")
         }
 
+        ToolbarItem {
+            Menu("Sort By", systemImage: "arrow.up.and.down.text.horizontal") {
+                SortMenuItems(settings: settings)
+            }
+            .help("Change the order of items")
+        }
+
         ToolbarItemGroup {
             Button("New Folder", systemImage: "folder.badge.plus") { browser.isNewFolderShown = true }
                 .help("Create a folder on the phone")
@@ -43,6 +50,42 @@ struct BrowserToolbar: ToolbarContent {
         ToolbarItem {
             Button("Inspector", systemImage: "info.circle") { browser.isInspectorShown.toggle() }
                 .help("Show or hide details")
+        }
+    }
+}
+
+/// Sort key and direction, checkmarked. Shared by the toolbar menu and View › Sort By.
+struct SortMenuItems: View {
+    @Bindable var settings: AppSettings
+
+    var body: some View {
+        Picker("Sort By", selection: Binding(get: { settings.sortKey }, set: { settings.sort(by: $0) })) {
+            ForEach(SortKey.allCases, id: \.self) { key in
+                Text(key.title)
+                    .keyboardShortcut(key.shortcut, modifiers: [.command, .option, .control])
+                    .tag(key)
+            }
+        }
+        .pickerStyle(.inline)
+        .labelsHidden()
+
+        Picker("Order", selection: $settings.sortDirection) {
+            Text("Ascending").tag(SortDirection.ascending)
+            Text("Descending").tag(SortDirection.descending)
+        }
+        .pickerStyle(.inline)
+        .labelsHidden()
+    }
+}
+
+private extension SortKey {
+    /// Finder's View › Sort By shortcuts (⌃⌥⌘ plus this key).
+    var shortcut: KeyEquivalent {
+        switch self {
+        case .name: "1"
+        case .kind: "2"
+        case .dateModified: "5"
+        case .size: "7"
         }
     }
 }
