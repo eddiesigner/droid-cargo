@@ -265,15 +265,30 @@ final class GridCoordinator: NSObject, NSCollectionViewDataSource, NSCollectionV
 final class FileCollectionView: NSCollectionView {
     weak var coordinator: GridCoordinator?
 
+    /// Where a press on empty space began; checked on release, because the
+    /// collection view returns from mouseDown before a rubber-band drag ends.
+    private var emptyPressStart: NSPoint?
+
     override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        emptyPressStart = indexPathForItem(at: point) == nil ? NSEvent.mouseLocation : nil
         super.mouseDown(with: event)
+
         guard event.clickCount == 2 else {
             return
         }
-        let point = convert(event.locationInWindow, from: nil)
         if let path = indexPathForItem(at: point) {
             coordinator?.open(at: path.item)
         }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        super.mouseUp(with: event)
+        // A pointer that barely moved means a click, not a rubber-band drag.
+        if let start = emptyPressStart, EmptyAreaClick.isClick(from: start) {
+            coordinator?.browser.emptyAreaClicked()
+        }
+        emptyPressStart = nil
     }
 
     override func keyDown(with event: NSEvent) {
@@ -320,6 +335,17 @@ final class FileCollectionView: NSCollectionView {
             delegate?.collectionView?(self, didSelectItemsAt: [path])
         }
         return coordinator.menu(for: coordinator.selectedItems)
+    }
+}
+
+/// Tells a click on empty space apart from the start of a rubber-band drag.
+enum EmptyAreaClick {
+    /// Further than this and the gesture was a drag.
+    private static let maxTravel: CGFloat = 3
+
+    static func isClick(from start: NSPoint) -> Bool {
+        let end = NSEvent.mouseLocation
+        return hypot(end.x - start.x, end.y - start.y) <= maxTravel
     }
 }
 

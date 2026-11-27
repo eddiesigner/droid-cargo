@@ -410,6 +410,13 @@ final class BrowserModel {
         await task.value
     }
 
+    /// A plain click on empty space in the file area dismisses the floating inspector.
+    func emptyAreaClicked() {
+        if isInspectorShown {
+            isInspectorShown = false
+        }
+    }
+
     func cancelPreview() {
         previewTask?.cancel()
     }

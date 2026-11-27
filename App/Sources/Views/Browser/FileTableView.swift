@@ -323,6 +323,17 @@ final class TableCoordinator: NSObject, NSTableViewDataSource, NSTableViewDelega
 final class FileTable: NSTableView {
     weak var coordinator: TableCoordinator?
 
+    override func mouseDown(with event: NSEvent) {
+        let row = row(at: convert(event.locationInWindow, from: nil))
+        let start = NSEvent.mouseLocation
+        super.mouseDown(with: event)
+
+        // Click below the last row (not a drag) dismisses the floating inspector.
+        if row < 0, EmptyAreaClick.isClick(from: start) {
+            coordinator?.browser.emptyAreaClicked()
+        }
+    }
+
     override func keyDown(with event: NSEvent) {
         let flags = event.modifierFlags.intersection([.command, .option, .control, .shift])
         if event.keyCode == KeyCode.space, flags.isEmpty {

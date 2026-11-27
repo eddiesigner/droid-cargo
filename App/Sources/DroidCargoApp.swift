@@ -24,7 +24,6 @@ struct DroidCargoApp: App {
         .commands {
             BrowserCommands()
             SidebarCommands()
-            InspectorCommands()
             HelpCommands()
         }
 
@@ -86,6 +85,14 @@ struct BrowserCommands: Commands {
             }
             .keyboardShortcut(".", modifiers: [.command, .shift])
             Divider()
+            // The info panel is a plain view, so the system Inspector command doesn't reach it.
+            Button(browser?.isInspectorShown == true ? "Hide Inspector" : "Show Inspector") {
+                browser?.isInspectorShown.toggle()
+            }
+            .keyboardShortcut("i", modifiers: [.command, .control])
+            .disabled(browser == nil)
+            Divider()
+
         }
     }
 }

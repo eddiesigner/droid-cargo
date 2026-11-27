@@ -27,10 +27,6 @@ struct ContentView: View {
         } detail: {
             detail
         }
-        .inspector(isPresented: $browser.isInspectorShown) {
-            InspectorView(browser: browser)
-                .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
-        }
         .focusedSceneValue(\.browser, browser)
         .sheet(item: Binding(get: { app.conflictPrompt }, set: { _ in })) { prompt in
             ConflictSheet(prompt: prompt)

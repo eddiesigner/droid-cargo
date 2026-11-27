@@ -12,6 +12,8 @@ struct BrowserView: View {
         VStack(spacing: 0) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .trailing) { inspectorPanel }
+                .animation(Self.inspectorAnimation, value: browser.isInspectorShown)
             BottomBars(browser: browser)
         }
         .navigationTitle(browser.breadcrumbs.last?.name ?? "")
@@ -99,6 +101,28 @@ struct BrowserView: View {
             ContentUnavailableView.search(text: browser.searchText)
         }
     }
+
+    /// Floats over the files instead of taking room from them. As a column
+    /// it made the grid reflow (items jumped) and, when hidden, left a
+    /// collapsed edge that dragging the scroll bar could pull open.
+    @ViewBuilder
+    private var inspectorPanel: some View {
+        if browser.isInspectorShown {
+            InspectorView(browser: browser)
+                .frame(width: Self.inspectorWidth)
+                .frame(maxHeight: .infinity)
+                // Tinted so busy thumbnails behind it don't hurt readability.
+                .glassEffect(.regular.tint(Self.inspectorTint), in: .rect(cornerRadius: Self.inspectorCornerRadius))
+                .padding(Self.inspectorMargin)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+        }
+    }
+
+    private static let inspectorWidth: CGFloat = 280
+    private static let inspectorCornerRadius: CGFloat = 16
+    private static let inspectorMargin: CGFloat = 8
+    private static let inspectorTint = Color(nsColor: .windowBackgroundColor).opacity(0.75)
+    private static let inspectorAnimation = Animation.snappy(duration: 0.2)
 
     @ViewBuilder
     private var dropHighlight: some View {
