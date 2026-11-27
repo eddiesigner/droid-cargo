@@ -8,6 +8,64 @@ enum BrowserLayout: String, CaseIterable {
     case grid
 }
 
+/// The app's interface language. Stored the standard macOS way (the app's
+/// own `AppleLanguages`), which the system reads at launch.
+enum AppLanguage: String, CaseIterable {
+    /// Follow the Mac's language list; English when none of ours match.
+    case automatic
+    case english = "en"
+    case spanish = "es"
+    case german = "de"
+
+    static let supportedCodes = ["en", "es", "de"]
+    private static let preferenceKey = "AppleLanguages"
+
+    /// Each language in its own language, so anyone can find theirs.
+    var nativeName: String {
+        switch self {
+        case .automatic: Self.resolvedAutomatic.nativeName
+        case .english: "English"
+        case .spanish: "Español"
+        case .german: "Deutsch"
+        }
+    }
+
+    /// The language Automatic picks from the Mac's preferred languages.
+    static var resolvedAutomatic: AppLanguage {
+        let global = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)?[preferenceKey] as? [String] ?? []
+        let code = Bundle.preferredLocalizations(from: supportedCodes, forPreferences: global).first
+        return code.flatMap(AppLanguage.init(rawValue:)) ?? .english
+    }
+
+    /// The language the running app was launched in.
+    static var running: AppLanguage {
+        Bundle.main.preferredLocalizations.first.flatMap(AppLanguage.init(rawValue:)) ?? .english
+    }
+
+    /// What this choice resolves to (Automatic becomes a concrete language).
+    var effective: AppLanguage {
+        self == .automatic ? Self.resolvedAutomatic : self
+    }
+
+    /// Reads the app's own override, ignoring the global list.
+    static func stored(in defaults: UserDefaults) -> AppLanguage {
+        guard let domain = Bundle.main.bundleIdentifier,
+              let codes = defaults.persistentDomain(forName: domain)?[preferenceKey] as? [String],
+              let first = codes.first else {
+            return .automatic
+        }
+        return AppLanguage(rawValue: first) ?? .automatic
+    }
+
+    func store(in defaults: UserDefaults) {
+        if self == .automatic {
+            defaults.removeObject(forKey: Self.preferenceKey)
+        } else {
+            defaults.set([rawValue], forKey: Self.preferenceKey)
+        }
+    }
+}
+
 /// What the file list and grid are ordered by.
 enum SortKey: String, CaseIterable {
     case name
@@ -85,6 +143,9 @@ final class AppSettings {
     var showHiddenFiles: Bool {
         didSet { defaults.set(showHiddenFiles, forKey: Key.showHiddenFiles) }
     }
+    var language: AppLanguage {
+        didSet { language.store(in: defaults) }
+    }
     var sortKey: SortKey {
         didSet { defaults.set(sortKey.rawValue, forKey: Key.sortKey) }
     }
@@ -130,6 +191,7 @@ final class AppSettings {
         showHiddenFiles = defaults.bool(forKey: Key.showHiddenFiles)
         layout = defaults.string(forKey: Key.layout).flatMap(BrowserLayout.init) ?? .list
         sortKey = defaults.string(forKey: Key.sortKey).flatMap(SortKey.init) ?? .name
+        language = AppLanguage.stored(in: defaults)
         sortDirection = defaults.string(forKey: Key.sortDirection).flatMap(SortDirection.init) ?? .ascending
         gridThumbnailSize = defaults.object(forKey: Key.gridThumbnailSize) as? Double ?? 128
         notifyWhenDone = defaults.object(forKey: Key.notifyWhenDone) as? Bool ?? true

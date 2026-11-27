@@ -8,7 +8,7 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             Tab("General", systemImage: "gearshape") {
-                GeneralSettings(settings: settings)
+                GeneralSettings(settings: settings, app: app)
             }
             Tab("Transfers", systemImage: "arrow.up.arrow.down") {
                 TransferSettings(settings: settings)
@@ -24,9 +24,30 @@ struct SettingsView: View {
 
 private struct GeneralSettings: View {
     @Bindable var settings: AppSettings
+    let app: AppModel
 
     var body: some View {
         Form {
+            Section {
+                Picker("Language", selection: $settings.language) {
+                    Text("Automatic (\(AppLanguage.automatic.nativeName))").tag(AppLanguage.automatic)
+                    Divider()
+                    ForEach([AppLanguage.english, .spanish, .german], id: \.self) { language in
+                        Text(verbatim: language.nativeName).tag(language)
+                    }
+                }
+                // The language only changes at launch, so offer a restart when it differs.
+                if settings.language.effective != AppLanguage.running {
+                    LabeledContent {
+                        Button("Restart Now", action: app.relaunch)
+                    } label: {
+                        Text("Restart DroidCargo to use \(settings.language.effective.nativeName).")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } footer: {
+                Text("Automatic follows your Mac’s language, or English if it isn’t available.")
+            }
             LabeledContent("Download to") {
                 HStack {
                     Label(settings.downloadFolder.lastPathComponent, systemImage: "folder")

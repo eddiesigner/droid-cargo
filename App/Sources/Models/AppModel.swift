@@ -208,6 +208,17 @@ final class AppModel {
         UNUserNotificationCenter.current().add(request)
     }
 
+    // MARK: Language
+
+    /// macOS applies an app's language only at launch, so start a fresh copy and quit.
+    func relaunch() {
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: configuration) { _, _ in
+            DispatchQueue.main.async { NSApp.terminate(nil) }
+        }
+    }
+
     // MARK: Caches
 
     func clearCaches() async {

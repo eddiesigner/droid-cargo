@@ -4,6 +4,7 @@ options:
   deploymentTarget:
     macOS: "26.0"
   createIntermediateGroups: true
+  developmentLanguage: en
 packages:
   DroidCargoKit:
     path: Packages/DroidCargoKit
@@ -32,6 +33,9 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.utilities
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        CFBundleDevelopmentRegion: en
+        # Languages the app ships; also localizes the system-provided menus.
+        CFBundleLocalizations: [en, es, de]
     entitlements:
       path: App/DroidCargo.entitlements
       properties: {}
