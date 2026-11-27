@@ -230,6 +230,10 @@ final class ADBDeviceSession: DeviceSession {
         try await run("mv -f \(ADBWire.shellQuote(source)) \(ADBWire.shellQuote(destination))")
     }
 
+    func copy(_ source: String, to destination: String) async throws {
+        try await run("cp -r --preserve=t \(ADBWire.shellQuote(source)) \(ADBWire.shellQuote(destination))")
+    }
+
     func remove(_ path: String) async throws {
         try await run("rm -rf \(ADBWire.shellQuote(path))")
     }

@@ -4,7 +4,6 @@ import SwiftUI
 
 struct BrowserView: View {
     @Bindable var browser: BrowserModel
-    @State private var isDropTargeted = false
     @FocusState private var isSearchFocused: Bool
 
     private var settings: AppSettings { browser.app.settings }
@@ -23,10 +22,8 @@ struct BrowserView: View {
         .searchFocused($isSearchFocused)
         .onChange(of: browser.searchFocusRequests) { isSearchFocused = true }
         .toolbar { BrowserToolbar(browser: browser) }
-        .dropDestination(for: URL.self) { urls, _ in
-            browser.upload(urls)
-            return true
-        } isTargeted: { isDropTargeted = $0 }
+        // Drops are handled by the file views (they know the folder under
+        // the pointer); a SwiftUI drop target here would swallow them.
         .overlay { dropHighlight }
         .overlay {
             if let preparation = browser.previewPreparation {
@@ -82,17 +79,28 @@ struct BrowserView: View {
             } actions: {
                 Button("Try Again") { browser.refresh() }
             }
-        case .loading where browser.items.isEmpty:
-            ProgressView("Loading…")
-                .controlSize(.small)
         default:
-            if browser.visibleItems.isEmpty {
-                emptyFolder
-            } else if settings.layout == .grid {
-                CollectionGridView(browser: browser, iconSize: settings.gridThumbnailSize)
-            } else {
-                FileTableView(browser: browser)
-            }
+            // The file view stays in place while loading or empty, so it keeps
+            // keyboard focus (⌘V into an empty folder) across navigation.
+            fileView
+                .overlay {
+                    if browser.state == .loading, browser.items.isEmpty {
+                        ProgressView("Loading…")
+                            .controlSize(.small)
+                    } else if browser.visibleItems.isEmpty {
+                        emptyFolder
+                            .allowsHitTesting(false)
+                    }
+                }
+        }
+    }
+
+    @ViewBuilder
+    private var fileView: some View {
+        if settings.layout == .grid {
+            CollectionGridView(browser: browser, iconSize: settings.gridThumbnailSize)
+        } else {
+            FileTableView(browser: browser)
         }
     }
 
@@ -129,7 +137,7 @@ struct BrowserView: View {
 
     @ViewBuilder
     private var dropHighlight: some View {
-        if isDropTargeted {
+        if browser.isFinderDropTargeted {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(Color.accentColor, lineWidth: 3)
                 .background(Color.accentColor.opacity(0.06), in: .rect(cornerRadius: 12))

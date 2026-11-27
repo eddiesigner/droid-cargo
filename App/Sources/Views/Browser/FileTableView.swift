@@ -26,8 +26,9 @@ struct FileTableView: NSViewRepresentable {
         table.delegate = context.coordinator
         table.target = context.coordinator
         table.doubleAction = #selector(TableCoordinator.doubleClicked(_:))
-        table.registerForDraggedTypes([.fileURL])
+        table.registerForDraggedTypes([.fileURL, .remoteItem])
         table.setDraggingSourceOperationMask(.copy, forLocal: false)
+        table.setDraggingSourceOperationMask([.move, .copy], forLocal: true)
         table.draggingDestinationFeedbackStyle = .regular
         table.autosaveName = "FileTable"
         table.autosaveTableColumns = true
@@ -285,10 +286,7 @@ final class TableCoordinator: NSObject, NSTableViewDataSource, NSTableViewDelega
         guard let item = items[safe: row] else {
             return nil
         }
-        let type = item.isDirectory ? UTType.folder : (UTType(filenameExtension: item.fileExtension) ?? .data)
-        let provider = NSFilePromiseProvider(fileType: type.identifier, delegate: self)
-        provider.userInfo = item
-        return provider
+        return RemoteItemDragProvider(item: item, deviceID: browser.deviceID, delegate: self)
     }
 
     nonisolated func filePromiseProvider(_ provider: NSFilePromiseProvider, fileNameForType fileType: String) -> String {
@@ -322,6 +320,11 @@ final class TableCoordinator: NSObject, NSTableViewDataSource, NSTableViewDelega
     // MARK: Drop in
 
     func tableView(_ tableView: NSTableView, validateDrop info: any NSDraggingInfo, proposedRow row: Int, proposedDropOperation dropOperation: NSTableView.DropOperation) -> NSDragOperation {
+        // Phone items move, and only onto another folder.
+        if let paths = RemoteItemDragProvider.paths(in: info, deviceID: browser.deviceID) {
+            let canMove = dropOperation == .on && RemoteItemDragProvider.canMove(paths, onto: items[safe: row])
+            return canMove ? RemoteItemDragProvider.mode(for: info).dragOperation : []
+        }
         guard (info.draggingSource as? NSTableView) !== tableView else {
             return []
         }
@@ -334,6 +337,14 @@ final class TableCoordinator: NSObject, NSTableViewDataSource, NSTableViewDelega
     }
 
     func tableView(_ tableView: NSTableView, acceptDrop info: any NSDraggingInfo, row: Int, dropOperation: NSTableView.DropOperation) -> Bool {
+        if let paths = RemoteItemDragProvider.paths(in: info, deviceID: browser.deviceID) {
+            guard let folder = items[safe: row] else {
+                return false
+            }
+            let mode = RemoteItemDragProvider.mode(for: info)
+            Task { await browser.place(paths, into: folder.path, mode: mode) }
+            return true
+        }
         let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
         guard let urls = info.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL], !urls.isEmpty else {
             return false
@@ -358,6 +369,32 @@ final class FileTable: NSTableView {
         // Click below the last row (not a drag) dismisses the floating inspector.
         if row < 0, EmptyAreaClick.isClick(from: start) {
             coordinator?.browser.emptyAreaClicked()
+        }
+    }
+
+    // MARK: Cut, copy and paste (on the phone)
+
+    // Responder actions, so text fields keep their own ⌘X, ⌘C and ⌘V.
+    @objc func cut(_ sender: Any?) {
+        coordinator?.browser.putSelectionOnClipboard(.move)
+    }
+
+    @objc func copy(_ sender: Any?) {
+        coordinator?.browser.putSelectionOnClipboard(.copy)
+    }
+
+    @objc func paste(_ sender: Any?) {
+        coordinator?.browser.paste()
+    }
+
+    @objc func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(cut(_:)), #selector(copy(_:)):
+            return !(coordinator?.browser.selection.isEmpty ?? true)
+        case #selector(paste(_:)):
+            return coordinator?.browser.canPaste ?? false
+        default:
+            return responds(to: menuItem.action)
         }
     }
 

@@ -11,6 +11,13 @@ struct ConflictPrompt: Identifiable {
     let respond: (ConflictResolution, ConflictScope) -> Void
 }
 
+/// Phone items waiting to be pasted: moved if cut, copied if copied.
+struct PhoneClipboard {
+    let deviceID: String
+    let paths: [String]
+    let mode: PlaceMode
+}
+
 /// App-wide state shared by every window. Views reach services only through here.
 @Observable
 final class AppModel {
@@ -27,6 +34,8 @@ final class AppModel {
     private(set) var storageErrors: [String: String] = [:]
     var conflictPrompt: ConflictPrompt?
     var isTransfersPopoverShown = false
+    /// Items cut (⌘X) or copied (⌘C), waiting for ⌘V in a folder of the same phone.
+    var clipboard: PhoneClipboard?
 
     init() {
         let settings = AppSettings()
@@ -146,6 +155,11 @@ final class AppModel {
             let done = Set(job.downloadedRemotePaths)
             photoImport.markImported(items.filter { done.contains($0.path) }, deviceID: device.id)
         }
+    }
+
+    /// Moves or copies items between folders on one phone. Returns their new paths.
+    func place(_ paths: [String], into folder: String, on deviceID: String, mode: PlaceMode) async throws -> [String] {
+        try await files.place(paths, into: folder, on: deviceID, mode: mode, options: settings.transferOptions, onConflict: askAboutConflict)
     }
 
     /// Downloads into a temp folder for drag-and-drop to Finder. Returns the local copy.

@@ -117,6 +117,13 @@ final class FakeSession: DeviceSession, @unchecked Sendable {
         }
     }
 
+    func copy(_ source: String, to destination: String) async throws {
+        lock.withLock {
+            files[destination] = files[source]
+            dates[destination] = dates[source]
+        }
+    }
+
     func remove(_ path: String) async throws {
         lock.withLock { _ = files.removeValue(forKey: path) }
     }

@@ -1215,6 +1215,22 @@
         }
       }
     },
+    "Copying…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopieren …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiando…"
+          }
+        }
+      }
+    },
     "Couldn’t Open Folder": {
       "localizations": {
         "de": {
@@ -1291,6 +1307,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Crear una carpeta en el teléfono"
+          }
+        }
+      }
+    },
+    "Cut": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausschneiden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cortar"
           }
         }
       }
@@ -2409,6 +2441,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Modificado"
+          }
+        }
+      }
+    },
+    "Moving…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bewegen …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moviendo…"
           }
         }
       }
@@ -4393,6 +4441,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "“%@” ya existe"
+          }
+        }
+      }
+    },
+    "“%@” can’t be moved into itself.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ kann nicht in sich selbst bewegt werden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” no se puede mover dentro de sí mismo."
           }
         }
       }

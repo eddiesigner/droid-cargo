@@ -29,8 +29,9 @@ struct CollectionGridView: NSViewRepresentable {
         collection.dataSource = context.coordinator
         collection.delegate = context.coordinator
         collection.coordinator = context.coordinator
-        collection.registerForDraggedTypes([.fileURL])
+        collection.registerForDraggedTypes([.fileURL, .remoteItem])
         collection.setDraggingSourceOperationMask(.copy, forLocal: false)
+        collection.setDraggingSourceOperationMask([.move, .copy], forLocal: true)
         collection.setAccessibilityLabel(String(localized: "Files"))
         context.coordinator.collectionView = collection
 
@@ -190,10 +191,7 @@ final class GridCoordinator: NSObject, NSCollectionViewDataSource, NSCollectionV
         guard let item = items[safe: indexPath.item] else {
             return nil
         }
-        let type = item.isDirectory ? UTType.folder : (UTType(filenameExtension: item.fileExtension) ?? .data)
-        let provider = NSFilePromiseProvider(fileType: type.identifier, delegate: self)
-        provider.userInfo = item
-        return provider
+        return RemoteItemDragProvider(item: item, deviceID: browser.deviceID, delegate: self)
     }
 
     nonisolated func filePromiseProvider(_ provider: NSFilePromiseProvider, fileNameForType fileType: String) -> String {
@@ -232,10 +230,15 @@ final class GridCoordinator: NSObject, NSCollectionViewDataSource, NSCollectionV
         proposedIndexPath: AutoreleasingUnsafeMutablePointer<NSIndexPath>,
         dropOperation: UnsafeMutablePointer<NSCollectionView.DropOperation>
     ) -> NSDragOperation {
+        let index = (proposedIndexPath.pointee as IndexPath).item
+        // Phone items move, and only onto another folder.
+        if let paths = RemoteItemDragProvider.paths(in: draggingInfo, deviceID: browser.deviceID) {
+            let canMove = dropOperation.pointee == .on && RemoteItemDragProvider.canMove(paths, onto: items[safe: index])
+            return canMove ? RemoteItemDragProvider.mode(for: draggingInfo).dragOperation : []
+        }
         guard (draggingInfo.draggingSource as? NSCollectionView) !== collectionView else {
             return []
         }
-        let index = (proposedIndexPath.pointee as IndexPath).item
         if dropOperation.pointee == .on, items[safe: index]?.isDirectory != true {
             // Dropping onto a file means "this folder".
             dropOperation.pointee = .before
@@ -249,6 +252,14 @@ final class GridCoordinator: NSObject, NSCollectionViewDataSource, NSCollectionV
         indexPath: IndexPath,
         dropOperation: NSCollectionView.DropOperation
     ) -> Bool {
+        if let paths = RemoteItemDragProvider.paths(in: draggingInfo, deviceID: browser.deviceID) {
+            guard dropOperation == .on, let folder = items[safe: indexPath.item] else {
+                return false
+            }
+            let mode = RemoteItemDragProvider.mode(for: draggingInfo)
+            Task { await browser.place(paths, into: folder.path, mode: mode) }
+            return true
+        }
         let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
         guard let urls = draggingInfo.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL], !urls.isEmpty else {
             return false
@@ -264,6 +275,24 @@ final class GridCoordinator: NSObject, NSCollectionViewDataSource, NSCollectionV
 /// Adds Finder's keyboard and mouse conventions on top of NSCollectionView.
 final class FileCollectionView: NSCollectionView {
     weak var coordinator: GridCoordinator?
+
+    // MARK: Finder drop highlight (phone items highlight their target folder instead)
+
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        let types = sender.draggingPasteboard.types ?? []
+        coordinator?.browser.isFinderDropTargeted = types.contains(.fileURL) && !types.contains(.remoteItem)
+        return super.draggingEntered(sender)
+    }
+
+    override func draggingExited(_ sender: (any NSDraggingInfo)?) {
+        coordinator?.browser.isFinderDropTargeted = false
+        super.draggingExited(sender)
+    }
+
+    override func draggingEnded(_ sender: any NSDraggingInfo) {
+        coordinator?.browser.isFinderDropTargeted = false
+        super.draggingEnded(sender)
+    }
 
     /// Where a press on empty space began; checked on release, because the
     /// collection view returns from mouseDown before a rubber-band drag ends.
@@ -289,6 +318,32 @@ final class FileCollectionView: NSCollectionView {
             coordinator?.browser.emptyAreaClicked()
         }
         emptyPressStart = nil
+    }
+
+    // MARK: Cut, copy and paste (on the phone)
+
+    // Responder actions, so text fields keep their own ⌘X, ⌘C and ⌘V.
+    @objc func cut(_ sender: Any?) {
+        coordinator?.browser.putSelectionOnClipboard(.move)
+    }
+
+    @objc func copy(_ sender: Any?) {
+        coordinator?.browser.putSelectionOnClipboard(.copy)
+    }
+
+    @objc func paste(_ sender: Any?) {
+        coordinator?.browser.paste()
+    }
+
+    @objc func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(cut(_:)), #selector(copy(_:)):
+            return !(coordinator?.browser.selection.isEmpty ?? true)
+        case #selector(paste(_:)):
+            return coordinator?.browser.canPaste ?? false
+        default:
+            return responds(to: menuItem.action)
+        }
     }
 
     override func keyDown(with event: NSEvent) {

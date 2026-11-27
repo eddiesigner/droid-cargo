@@ -14,6 +14,7 @@
 		43C90259A1094AE58AB553FA /* FileCollectionItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A13AEC6AF8138556537A2F /* FileCollectionItem.swift */; };
 		4BF78B8F84F61DBFCF2F61A1 /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8730DE01CE77BF2DFD8AD4AF /* InspectorView.swift */; };
 		4CBD510BC7EECB0CD03B7BAF /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75B9EA5270899F365CF71C2A /* SidebarView.swift */; };
+		5928C2546A27D62107727617 /* RemoteDrag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47DAE9A4739A40F2B6BC20E9 /* RemoteDrag.swift */; };
 		5EC6B1390F6BCB3B3BF1D231 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BADE07D88ADB8A0F5F7D64A4 /* BrowserView.swift */; };
 		6A54BE7F4EDF105D119B4529 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95485E35FDCCE06CCA0E37E0 /* AboutView.swift */; };
 		6B86B18D1E910CFCB076F7C2 /* TransfersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8B153C7FD3569B6B9CDA28 /* TransfersView.swift */; };
@@ -39,6 +40,7 @@
 /* Begin PBXFileReference section */
 		246E39A5F291CA2C9C67C7EE /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2D35FDFA2B0C1B31C4EB1EE7 /* BrowserModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserModel.swift; sourceTree = "<group>"; };
+		47DAE9A4739A40F2B6BC20E9 /* RemoteDrag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDrag.swift; sourceTree = "<group>"; };
 		5422FB580A29B6319CAE7447 /* ConnectionHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionHelpView.swift; sourceTree = "<group>"; };
 		69210BD8BD71CB8056715E5D /* DroidCargo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DroidCargo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7057F06FF355E039F8723732 /* CollectionGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionGridView.swift; sourceTree = "<group>"; };
@@ -171,6 +173,7 @@
 				F6A13AEC6AF8138556537A2F /* FileCollectionItem.swift */,
 				CFDC677849B079AD60F29307 /* FileTableView.swift */,
 				8730DE01CE77BF2DFD8AD4AF /* InspectorView.swift */,
+				47DAE9A4739A40F2B6BC20E9 /* RemoteDrag.swift */,
 			);
 			path = Browser;
 			sourceTree = "<group>";
@@ -320,6 +323,7 @@
 				4BF78B8F84F61DBFCF2F61A1 /* InspectorView.swift in Sources */,
 				C6F3CA5E810B9EC247169A8B /* OnboardingView.swift in Sources */,
 				B66BA3C59464F3F3B7146720 /* PhotoImportSheet.swift in Sources */,
+				5928C2546A27D62107727617 /* RemoteDrag.swift in Sources */,
 				EA09C9F32F9F8ED70B4FBEF2 /* SettingsView.swift in Sources */,
 				8AA7E929D7FC47C2669418C4 /* SetupSteps.swift in Sources */,
 				13B631ED1D74BEBB7C0C6B46 /* Sheets.swift in Sources */,

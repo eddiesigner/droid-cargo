@@ -188,6 +188,8 @@ struct ItemMenuBuilder {
             })
             menu.addItem(.separator())
         }
+        menu.addItem(ClosureMenuItem.make(String(localized: "Cut")) { browser.putSelectionOnClipboard(.move) })
+        menu.addItem(ClosureMenuItem.make(String(localized: "Copy")) { browser.putSelectionOnClipboard(.copy) })
         menu.addItem(ClosureMenuItem.make(String(localized: "Delete…")) { browser.pendingDeletion = items })
         return menu
     }

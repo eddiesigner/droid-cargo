@@ -57,6 +57,8 @@ public protocol DeviceSession: Sendable {
 
     func makeDirectory(_ path: String) async throws
     func move(_ source: String, to destination: String) async throws
+    /// Copies a file or folder (recursively) on the phone, keeping its dates.
+    func copy(_ source: String, to destination: String) async throws
     func remove(_ path: String) async throws
 
     /// Asks the phone to index new files so they show up in Gallery and other apps.

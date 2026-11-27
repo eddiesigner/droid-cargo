@@ -102,10 +102,16 @@ struct BottomBars: View {
                 .padding(.horizontal, 8)
             Divider()
             ZStack {
-                Text(status)
-                    .font(.system(size: NSFont.smallSystemFontSize))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    if browser.placing != nil {
+                        ProgressView()
+                            .controlSize(.mini)
+                    }
+                    Text(status)
+                }
+                .font(.system(size: NSFont.smallSystemFontSize))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
                 if browser.app.settings.layout == .grid {
                     HStack {
                         Spacer()
@@ -124,6 +130,11 @@ struct BottomBars: View {
 
     /// Finder wording: "1 of 7,913 selected, 45.2 GB available".
     private var status: String {
+        switch browser.placing {
+        case .copy: return String(localized: "Copying…")
+        case .move: return String(localized: "Moving…")
+        case nil: break
+        }
         let count = browser.visibleItems.count
         let selectedCount = browser.selection.count
         var text = selectedCount > 0

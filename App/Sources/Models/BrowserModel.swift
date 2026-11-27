@@ -100,6 +100,10 @@ final class BrowserModel {
     var renameTarget: RemoteItem?
     var pendingDeletion: [RemoteItem] = []
     var operationError: String?
+    /// Files from Finder are over the grid: the whole view highlights.
+    var isFinderDropTargeted = false
+    /// A move or copy running on the phone (copies of big folders take a while).
+    private(set) var placing: PlaceMode?
     /// Local copy shown by Quick Look.
     var previewURL: URL?
     /// Shown once copying a file for Quick Look takes noticeably long.
@@ -354,6 +358,52 @@ final class BrowserModel {
         try await app.files.rename(item.path, to: name, on: deviceID)
         await load()
         selection = [RemotePath.join(RemotePath.parent(item.path), name)]
+    }
+
+    /// Moves or copies items into `folder`. Selects them when they land in the open folder.
+    func place(_ paths: [String], into folder: String, mode: PlaceMode) async {
+        guard let deviceID, !paths.isEmpty else {
+            return
+        }
+        placing = mode
+        defer { placing = nil }
+        do {
+            let placed = try await app.place(paths, into: folder, on: deviceID, mode: mode)
+            await load(.refresh)
+            if folder == currentPath {
+                selection = Set(placed)
+            }
+            await app.loadStorages(deviceID)
+        } catch {
+            operationError = error.localizedDescription
+        }
+    }
+
+    /// ⌘X (`.move`) or ⌘C (`.copy`): remembers the selection for ⌘V.
+    func putSelectionOnClipboard(_ mode: PlaceMode) {
+        guard let deviceID, !selection.isEmpty else {
+            return
+        }
+        app.clipboard = PhoneClipboard(deviceID: deviceID, paths: selectedItems.map(\.path), mode: mode)
+    }
+
+    /// Items from this phone can land here.
+    var canPaste: Bool {
+        guard let clipboard = app.clipboard else {
+            return false
+        }
+        return clipboard.deviceID == deviceID && currentPath != nil && placing == nil
+    }
+
+    /// Pastes into the open folder. Cut items move once; copied ones can be pasted again.
+    func paste() {
+        guard canPaste, let clipboard = app.clipboard, let currentPath else {
+            return
+        }
+        if clipboard.mode == .move {
+            app.clipboard = nil
+        }
+        Task { await place(clipboard.paths, into: currentPath, mode: clipboard.mode) }
     }
 
     func delete(_ items: [RemoteItem]) async throws {
